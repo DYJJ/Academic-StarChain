@@ -1,0 +1,55 @@
+{
+  "name": "student-grade-certification",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "postinstall": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:setup": "node deployment/scripts/setup-database.js",
+    "db:seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^6.0.0",
+    "@prisma/client": "^6.5.0",
+    "@types/bcrypt": "^5.0.2",
+    "@types/uuid": "^10.0.0",
+    "antd": "^5.24.5",
+    "bcrypt": "^5.1.1",
+    "bcryptjs": "^2.4.3",
+    "crypto-js": "^4.1.1",
+    "dayjs": "^1.11.13",
+    "flowbite": "^3.1.2",
+    "flowbite-react": "^0.11.5",
+    "framer-motion": "^12.6.2",
+    "generate-password": "^1.7.1",
+    "jsonwebtoken": "^9.0.1",
+    "mysql2": "^3.14.0",
+    "next": "13.4.19",
+    "prisma": "^6.5.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-icons": "^5.5.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.2",
+    "@types/crypto-js": "^4.1.1",
+    "@types/jsonwebtoken": "^9.0.2",
+    "@types/node": "^20.5.6",
+    "@types/react": "18.2.21",
+    "@types/react-dom": "18.2.7",
+    "autoprefixer": "10.4.15",
+    "postcss": "8.4.28",
+    "tailwindcss": "3.3.3",
+    "ts-node": "^10.9.2",
+    "tsx": "^3.12.7",
+    "typescript": "5.2.2"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  }
+}
