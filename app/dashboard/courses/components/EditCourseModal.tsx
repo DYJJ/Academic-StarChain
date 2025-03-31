@@ -2,22 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { Modal, Form, Input, InputNumber, Select, Button, Typography, Space, Avatar, Tag, Tooltip, Tabs, Alert, Badge, Divider } from 'antd';
-import { BookOutlined, EditOutlined, SaveOutlined, ReadOutlined, FileTextOutlined, NumberOutlined, CalendarOutlined, RocketOutlined, HistoryOutlined, CompareOutlined, CheckOutlined, CodeOutlined } from '@ant-design/icons';
+import { BookOutlined, EditOutlined, SaveOutlined, ReadOutlined, FileTextOutlined, NumberOutlined, CalendarOutlined, RocketOutlined, HistoryOutlined, SwapOutlined, CheckOutlined, CodeOutlined } from '@ant-design/icons';
+import { Course } from '../page';
 
 const { Option } = Select;
 const { TextArea } = Input;
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
-
-type Course = {
-  id: string;
-  code: string;
-  name: string;
-  description: string;
-  credit: number;
-  semester: string;
-  difficulty?: number;
-};
 
 type EditCourseModalProps = {
   course: Course;
@@ -333,7 +324,7 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
                       <Tooltip title="查看修改前后对比">
                         <Button
                           type="default"
-                          icon={<CompareOutlined />}
+                          icon={<SwapOutlined />}
                           onClick={() => setActiveTab('compare')}
                         >
                           查看变更
@@ -367,7 +358,7 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
             key: 'compare',
             label: (
               <span>
-                <CompareOutlined /> 变更对比
+                <SwapOutlined /> 变更对比
               </span>
             ),
             children: (

@@ -392,7 +392,7 @@ export default function GradesManagement() {
         { text: '已拒绝', value: 'REJECTED' },
         { text: '待验证', value: 'PENDING' },
       ],
-      onFilter: (value: string, record: Grade) => record.status === value,
+      onFilter: (value: string | number | boolean, record: Grade) => record.status === value.toString(),
     },
     {
       title: '操作',

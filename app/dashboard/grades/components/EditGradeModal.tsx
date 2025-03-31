@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Modal, Form, Select, InputNumber, Button, Typography, Descriptions, Space, Tag, Avatar, Tooltip, Progress, Alert, Divider, Switch } from 'antd';
-import { EditOutlined, CheckCircleOutlined, CloseCircleOutlined, QuestionCircleOutlined, TrophyOutlined, BookOutlined, UserOutlined, SaveOutlined, UndoOutlined, PercentageOutlined } from '@ant-design/icons';
+import { EditOutlined, CheckCircleOutlined, CloseCircleOutlined, QuestionCircleOutlined, TrophyOutlined, BookOutlined, UserOutlined, SaveOutlined, UndoOutlined, PercentageOutlined, AuditOutlined } from '@ant-design/icons';
 
 const { Text, Title } = Typography;
 
@@ -236,6 +236,13 @@ export default function EditGradeModal({
         form={form}
         layout="vertical"
         onFinish={handleFinish}
+        initialValues={{ score: grade.score, status: grade.status }}
+        onValuesChange={(changedValues) => {
+          setHasChanged(true);
+          if (changedValues.score !== undefined) {
+            setCurrentScore(changedValues.score);
+          }
+        }}
       >
         <Form.Item
           name="score"
@@ -270,12 +277,10 @@ export default function EditGradeModal({
             name="status"
             label={
               <Space>
-                <CheckCircleOutlined />
-                <span>状态</span>
+                <AuditOutlined /> 成绩状态
               </Space>
             }
             rules={[{ required: true, message: '请选择状态' }]}
-            onChange={handleStatusChange}
           >
             <Select size="large">
               <Select.Option value="PENDING">

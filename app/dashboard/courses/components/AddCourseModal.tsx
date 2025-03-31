@@ -130,7 +130,7 @@ export default function AddCourseModal({ isOpen, onClose, onAddCourse }: AddCour
           </div>
 
           <div style={{ marginTop: '8px' }}>
-            <Text type="secondary" ellipsis={{ rows: 2 }}>{values.description || '课程描述信息...'}</Text>
+            <Text type="secondary" ellipsis>{values.description || '课程描述信息...'}</Text>
           </div>
         </Space>
       </div>

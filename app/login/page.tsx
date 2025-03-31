@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Form, Input, Button, Typography, Card, Space, message, Alert, Spin, Divider } from 'antd';
 import { UserOutlined, LockOutlined, LoginOutlined, HomeOutlined, SmileOutlined } from '@ant-design/icons';
-import { motion } from 'framer-motion';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -79,11 +78,13 @@ export default function Login() {
       alignItems: 'center',
       padding: '20px'
     }}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        style={{ width: '100%', maxWidth: '420px' }}
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '420px',
+          opacity: 1,
+          transform: 'translateY(0)'
+        }}
       >
         <Card
           bordered={false}
@@ -99,13 +100,7 @@ export default function Login() {
               textAlign: 'center',
               color: 'white'
             }}>
-              <motion.div
-                key={welcomeIndex}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.5 }}
-              >
+              <div key={welcomeIndex}>
                 <SmileOutlined style={{ fontSize: '42px', marginBottom: '16px' }} />
                 <Title level={3} style={{ color: 'white', margin: 0, fontFamily: '"Noto Sans SC", sans-serif' }}>
                   登录账号
@@ -113,7 +108,7 @@ export default function Login() {
                 <Text style={{ color: 'rgba(255,255,255,0.85)', fontStyle: 'italic', display: 'block', marginTop: '8px', height: '40px' }}>
                   {welcomeMessages[welcomeIndex]}
                 </Text>
-              </motion.div>
+              </div>
             </div>
           }
         >
@@ -187,16 +182,12 @@ export default function Login() {
           </Spin>
         </Card>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
-        >
+        <div>
           <Text style={{ display: 'block', textAlign: 'center', marginTop: '20px', color: 'rgba(0,0,0,0.45)' }}>
             © 2023 学生成绩认证系统 - 保障教育数据真实可信
           </Text>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     </div>
   );
 } 

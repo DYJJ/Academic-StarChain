@@ -164,14 +164,14 @@ export default function Navbar() {
                         style={{ backgroundColor: '#1677ff', marginRight: 10 }}
                         icon={<DashboardOutlined />}
                     />
-                    <Title level={4} style={{ margin: 0, display: { xs: 'none', sm: 'inline-block' } }}>
+                    <Title level={4} style={{ margin: 0 }} className="hidden sm:inline-block">
                         学生成绩认证系统
                     </Title>
                 </Link>
             </div>
 
             {/* 桌面端导航菜单 */}
-            <div style={{ display: { xs: 'none', md: 'flex' }, flex: 1, justifyContent: 'center' }}>
+            <div className="hidden md:flex" style={{ flex: 1, justifyContent: 'center' }}>
                 <Menu mode="horizontal" selectedKeys={[]} style={{ width: '100%', justifyContent: 'center', border: 'none' }}>
                     {getMenuItems().map((item) => (
                         <Menu.Item key={item.key} icon={item.icon}>
@@ -193,7 +193,7 @@ export default function Navbar() {
                                         backgroundColor: user.role === 'ADMIN' ? '#f56a00' : user.role === 'TEACHER' ? '#1677ff' : '#52c41a'
                                     }}
                                 />
-                                <span style={{ display: { xs: 'none', sm: 'inline-block' } }}>{user.name}</span>
+                                <span className="hidden sm:inline-block">{user.name}</span>
                             </Space>
                         </Dropdown>
 
@@ -201,7 +201,7 @@ export default function Navbar() {
                         <Button
                             type="text"
                             icon={<MenuOutlined />}
-                            style={{ display: { xs: 'inline-block', md: 'none' } }}
+                            className="inline-block md:hidden"
                             onClick={() => setDrawerVisible(true)}
                         />
                     </Space>
