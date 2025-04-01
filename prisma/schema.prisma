@@ -1,0 +1,98 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model SystemLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  details   String?  @db.Text
+  ipAddress String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("system_logs")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique(map: "email")
+  password      String
+  name          String
+  role          Role           @default(STUDENT)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  avatarUrl     String?        @db.Text
+  grades        Grade[]
+  teacherGrades Grade[]        @relation("TeacherGrades")
+  verifications Verification[]
+  systemLogs    SystemLog[]
+
+  @@map("users")
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String   @db.Text
+  credit      Float
+  semester    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  grades      Grade[]
+
+  @@map("courses")
+}
+
+model Grade {
+  id           String        @id @default(uuid())
+  score        Float
+  studentId    String
+  teacherId    String
+  courseId     String
+  status       Status        @default(PENDING)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  student      User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher      User          @relation("TeacherGrades", fields: [teacherId], references: [id], onDelete: Cascade)
+  course       Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  verification Verification?
+
+  @@index([studentId])
+  @@index([teacherId])
+  @@index([courseId])
+  @@map("grades")
+}
+
+model Verification {
+  id        String   @id @default(uuid())
+  gradeId   String   @unique
+  userId    String
+  message   String?  @db.Text
+  createdAt DateTime @default(now())
+  grade     Grade    @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("verifications")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum Status {
+  PENDING
+  VERIFIED
+  REJECTED
+}
