@@ -30,5 +30,25 @@ yarn-error.log*
 .env.production.local
 
 # 锁定文件
-# package-lock.json
-# yarn.lock
+package-lock.json
+yarn.lock
+
+# 特定的MacOS文件
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# 编辑器文件夹
+.idea/
+.vscode/
+*.swp
+*.swo
