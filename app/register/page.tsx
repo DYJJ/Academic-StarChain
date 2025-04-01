@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Form, Input, Button, Select, Typography, Card, Spin, message, Divider, Steps, Result, Space } from 'antd';
@@ -17,16 +17,48 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    name: '',
+    password: '',
+    role: 'STUDENT'
+  });
 
-  const handleSubmit = async (values: { email: string; password: string; name: string; role: string }) => {
+  const handleSubmit = async (values: { email?: string; password?: string; name?: string; role?: string }) => {
+    // 合并当前表单数据和之前保存的数据
+    const finalData = {
+      ...formData,
+      ...values,
+    };
+
     setLoading(true);
     try {
+      console.log('提交注册数据:', finalData);
+
+      // 使用FormData确保字符编码正确
+      const formDataObj = new FormData();
+      formDataObj.append('email', finalData.email || '');
+      formDataObj.append('name', finalData.name || '');
+      formDataObj.append('password', finalData.password || '');
+      formDataObj.append('role', finalData.role || 'STUDENT');
+
+      // 创建请求体数据
+      const requestBody = JSON.stringify({
+        email: finalData.email,
+        name: finalData.name,
+        password: finalData.password,
+        role: finalData.role
+      });
+
+      console.log('发送的 JSON:', requestBody);
+
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json; charset=utf-8',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify(values)
+        body: requestBody
       });
 
       const data = await response.json();
@@ -49,6 +81,31 @@ export default function Register() {
       setLoading(false);
     }
   };
+
+  // 处理第一步完成后的数据保存和跳转
+  const handleFirstStepComplete = async () => {
+    try {
+      // 验证第一步的表单字段
+      const values = await form.validateFields(['email', 'name', 'password']);
+
+      // 保存第一步的数据
+      setFormData({
+        ...formData,
+        ...values
+      });
+
+      // 跳转到下一步
+      setCurrentStep(1);
+    } catch (error) {
+      // 表单验证失败
+      console.error('表单验证失败:', error);
+    }
+  };
+
+  // 确保表单字段初始化
+  useEffect(() => {
+    form.setFieldsValue(formData);
+  }, [form, formData]);
 
   // 学生角色特性
   const studentFeatures = [
@@ -78,6 +135,7 @@ export default function Register() {
                 { required: true, message: '请输入邮箱地址' },
                 { type: 'email', message: '请输入有效的邮箱地址' }
               ]}
+              initialValue={formData.email}
             >
               <Input
                 prefix={<MailOutlined style={{ color: '#bfbfbf' }} />}
@@ -91,10 +149,12 @@ export default function Register() {
             <Form.Item
               name="name"
               rules={[{ required: true, message: '请输入您的姓名' }]}
+              initialValue={formData.name}
+              tooltip="建议使用英文字母或拼音，避免使用中文"
             >
               <Input
                 prefix={<UserOutlined style={{ color: '#bfbfbf' }} />}
-                placeholder="请输入您的姓名"
+                placeholder="请输入您的姓名（建议使用英文或拼音）"
                 size="large"
                 allowClear
               />
@@ -106,6 +166,7 @@ export default function Register() {
                 { required: true, message: '请设置密码' },
                 { min: 6, message: '密码至少6位字符' }
               ]}
+              initialValue={formData.password}
             >
               <Input.Password
                 prefix={<LockOutlined style={{ color: '#bfbfbf' }} />}
@@ -119,11 +180,7 @@ export default function Register() {
                 type="primary"
                 block
                 size="large"
-                onClick={() => {
-                  form.validateFields(['email', 'name', 'password']).then(() => {
-                    setCurrentStep(1);
-                  });
-                }}
+                onClick={handleFirstStepComplete}
                 icon={<ArrowRightOutlined />}
                 style={{
                   height: '44px',
@@ -144,7 +201,7 @@ export default function Register() {
             <Form.Item
               name="role"
               rules={[{ required: true, message: '请选择您的身份' }]}
-              initialValue="STUDENT"
+              initialValue={formData.role}
             >
               <Select size="large">
                 <Option value="STUDENT">
@@ -221,7 +278,7 @@ export default function Register() {
           <Result
             status="success"
             title="注册成功！"
-            subTitle={`欢迎加入，${form.getFieldValue('name')}！我们正在跳转到登录页面...`}
+            subTitle={`欢迎加入，${formData.name}！我们正在跳转到登录页面...`}
             extra={[
               <Button
                 type="primary"

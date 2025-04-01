@@ -1,6 +1,9 @@
 {
-  "/dashboard/profile/page": "app/dashboard/profile/page.js",
-  "/api/logs/route": "app/api/logs/route.js",
+  "/page": "app/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/my-courses/page": "app/dashboard/my-courses/page.js",
+  "/dashboard/my-students/page": "app/dashboard/my-students/page.js",
+  "/api/courses/teacher/route": "app/api/courses/teacher/route.js",
   "/api/auth/me/route": "app/api/auth/me/route.js",
-  "/api/users/uploadAvatar/route": "app/api/users/uploadAvatar/route.js"
+  "/api/students/teacher/route": "app/api/students/teacher/route.js"
 }

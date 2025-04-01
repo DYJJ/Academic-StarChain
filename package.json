@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "init-db": "ts-node ./src/scripts/init-db.ts"
+    "init-db": "ts-node ./src/scripts/init-db.ts",
+    "db:seed": "node prisma/seed.js"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@ant-design/icons": "^6.0.0",
@@ -20,6 +24,7 @@
     "bcryptjs": "^2.4.3",
     "crypto-js": "^4.1.1",
     "dayjs": "^1.11.13",
+    "dotenv": "^16.4.7",
     "flowbite": "^3.1.2",
     "flowbite-react": "^0.11.5",
     "framer-motion": "^12.6.2",
@@ -28,9 +33,11 @@
     "mysql2": "^3.14.0",
     "next": "13.4.19",
     "prisma": "^6.5.0",
+    "prop-types": "^15.8.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-icons": "^5.5.0",
+    "react-responsive-masonry": "^2.7.1",
     "sharp": "^0.33.5",
     "uuid": "^11.1.0"
   },

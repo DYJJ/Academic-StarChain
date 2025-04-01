@@ -79,14 +79,22 @@ export default function ProfilePage() {
                 setUser(data.user);
                 setLoading(false);
 
-                // 获取用户操作日志
-                await fetchUserLogs(data.user.id);
+                // 只有管理员才需要获取用户操作日志
+                if (data.user.role === 'ADMIN') {
+                    await fetchUserLogs(data.user.id);
+                } else {
+                    setLogsLoading(false);
+                }
 
                 // 获取用户统计信息
                 await fetchUserStats(data.user.id);
 
                 // 记录查看个人资料操作
-                logAction(LogAction.USER_PROFILE, '查看个人资料');
+                try {
+                    await logAction(LogAction.USER_PROFILE, '查看个人资料');
+                } catch (error) {
+                    console.error('记录日志失败:', error);
+                }
             } catch (err: any) {
                 console.error('加载数据失败:', err);
                 message.error(err.message || '加载数据失败');
@@ -236,128 +244,154 @@ export default function ProfilePage() {
     }
 
     return (
-        <Layout style={{ minHeight: '100vh' }}>
+        <Layout style={{ minHeight: '100vh', background: '#f5f7fa' }}>
             <Navbar />
-            <Content style={{ padding: '24px', backgroundColor: '#f0f2f5' }}>
-                <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                    <div style={{ marginBottom: 24 }}>
-                        <BackButton route="/dashboard" />
-                    </div>
 
-                    <Row gutter={[24, 24]}>
-                        <Col xs={24} md={8}>
-                            <Card>
-                                <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                                    {user && (
-                                        <AvatarUpload
-                                            currentAvatar={user.avatarUrl || null}
-                                            onAvatarChange={handleAvatarChange}
-                                            userRole={user.role}
-                                        />
-                                    )}
-                                    <Title level={3} style={{ marginTop: 16, marginBottom: 0 }}>{user?.name}</Title>
-                                    <div>
-                                        {user && getRoleTag(user.role)}
-                                    </div>
-                                </div>
+            <Content style={{ padding: '24px', position: 'relative' }}>
+                <BackButton />
 
-                                <Descriptions title="个人信息" bordered column={1}>
-                                    <Descriptions.Item label={<Space><MailOutlined /> 邮箱</Space>}>
-                                        {user?.email}
-                                    </Descriptions.Item>
-                                    <Descriptions.Item label={<Space><ClockCircleOutlined /> 注册时间</Space>}>
-                                        {user?.createdAt ? new Date(user.createdAt).toLocaleString('zh-CN') : '-'}
-                                    </Descriptions.Item>
-                                </Descriptions>
+                <Spin spinning={loading} tip="加载中...">
+                    {user && (
+                        <div>
+                            <Row gutter={24}>
+                                {/* 左侧个人信息卡片 */}
+                                <Col xs={24} sm={24} md={8} lg={6} xl={5}>
+                                    <Card style={{ marginBottom: '24px' }}>
+                                        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                                            <AvatarUpload
+                                                currentAvatar={user.avatarUrl}
+                                                onAvatarChange={handleAvatarChange}
+                                                userRole={user.role}
+                                            />
+                                            <Title level={4} style={{ marginTop: '16px', marginBottom: '4px' }}>
+                                                {user.name}
+                                            </Title>
+                                            {getRoleTag(user.role)}
+                                        </div>
 
-                                <Divider />
+                                        <Divider style={{ margin: '16px 0' }} />
 
-                                <Space direction="vertical" style={{ width: '100%' }}>
-                                    <Button
-                                        icon={<LockOutlined />}
-                                        block
-                                        onClick={handleChangePassword}
-                                    >
-                                        修改密码
-                                    </Button>
-                                    <Button
-                                        type="primary"
-                                        danger
-                                        icon={<LogoutOutlined />}
-                                        block
-                                        onClick={handleLogout}
-                                    >
-                                        退出登录
-                                    </Button>
-                                </Space>
-                            </Card>
+                                        <div>
+                                            <p>
+                                                <MailOutlined style={{ marginRight: '8px' }} />
+                                                {user.email}
+                                            </p>
+                                            <p>
+                                                <ClockCircleOutlined style={{ marginRight: '8px' }} />
+                                                注册于 {new Date(user.createdAt).toLocaleDateString()}
+                                            </p>
+                                        </div>
 
-                            <Card style={{ marginTop: 24 }}>
-                                <Statistic
-                                    title="活跃统计"
-                                    value={stats.totalActions}
-                                    prefix={<SettingOutlined />}
-                                    suffix="操作"
-                                    loading={statsLoading}
-                                />
+                                        <Divider style={{ margin: '16px 0' }} />
 
-                                <Row gutter={16} style={{ marginTop: 24 }}>
-                                    <Col span={12}>
-                                        <Statistic
-                                            title="今日操作"
-                                            value={stats.actionsToday}
-                                            loading={statsLoading}
-                                        />
-                                    </Col>
-                                    <Col span={12}>
-                                        <Statistic
-                                            title="登录次数"
-                                            value={stats.totalLogins}
-                                            loading={statsLoading}
-                                        />
-                                    </Col>
-                                </Row>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <Button
+                                                icon={<LockOutlined />}
+                                                onClick={handleChangePassword}
+                                                style={{ flex: 1, marginRight: '8px' }}
+                                            >
+                                                修改密码
+                                            </Button>
+                                            <Button
+                                                danger
+                                                icon={<LogoutOutlined />}
+                                                onClick={handleLogout}
+                                                style={{ flex: 1 }}
+                                            >
+                                                退出登录
+                                            </Button>
+                                        </div>
+                                    </Card>
 
-                                <Divider />
+                                    <Card title="账户统计" loading={statsLoading}>
+                                        <Row gutter={[16, 16]}>
+                                            <Col span={12}>
+                                                <Statistic
+                                                    title="登录次数"
+                                                    value={stats.totalLogins}
+                                                    valueStyle={{ color: '#1890ff' }}
+                                                />
+                                            </Col>
+                                            <Col span={12}>
+                                                <Statistic
+                                                    title="今日操作"
+                                                    value={stats.actionsToday}
+                                                    valueStyle={{ color: '#52c41a' }}
+                                                />
+                                            </Col>
+                                        </Row>
+                                    </Card>
+                                </Col>
 
-                                <div style={{ fontSize: 14 }}>
-                                    <Text type="secondary">上次登录时间：</Text>
-                                    <div style={{ marginTop: 4 }}>
-                                        {stats.lastLogin ? new Date(stats.lastLogin).toLocaleString('zh-CN') : '-'}
-                                    </div>
-                                </div>
-                            </Card>
-                        </Col>
+                                {/* 右侧内容区域 */}
+                                <Col xs={24} sm={24} md={16} lg={18} xl={19}>
+                                    <Card style={{ marginBottom: '24px' }}>
+                                        <Tabs defaultActiveKey="profile">
+                                            <TabPane tab="个人资料" key="profile">
+                                                <Descriptions
+                                                    title="基本信息"
+                                                    bordered
+                                                    column={{ xxl: 4, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}
+                                                >
+                                                    <Descriptions.Item label="姓名">{user.name}</Descriptions.Item>
+                                                    <Descriptions.Item label="邮箱">{user.email}</Descriptions.Item>
+                                                    <Descriptions.Item label="角色">
+                                                        {user.role === 'ADMIN' ? '管理员' : user.role === 'TEACHER' ? '教师' : '学生'}
+                                                    </Descriptions.Item>
+                                                    <Descriptions.Item label="注册时间">
+                                                        {new Date(user.createdAt).toLocaleString()}
+                                                    </Descriptions.Item>
+                                                    {user.updatedAt && (
+                                                        <Descriptions.Item label="最后更新">
+                                                            {new Date(user.updatedAt).toLocaleString()}
+                                                        </Descriptions.Item>
+                                                    )}
+                                                </Descriptions>
 
-                        <Col xs={24} md={16}>
-                            <Card
-                                title="操作日志"
-                                extra={
-                                    <Button
-                                        type="link"
-                                        onClick={() => fetchUserLogs(user?.id || '')}
-                                        disabled={logsLoading}
-                                    >
-                                        刷新
-                                    </Button>
-                                }
-                            >
-                                <Table
-                                    columns={columns}
-                                    dataSource={userLogs}
-                                    rowKey="id"
-                                    loading={logsLoading}
-                                    pagination={{
-                                        pageSize: 10,
-                                        showSizeChanger: true,
-                                        showQuickJumper: true,
-                                        showTotal: (total) => `共 ${total} 条记录`
-                                    }}
-                                />
-                            </Card>
-                        </Col>
-                    </Row>
-                </div>
+                                                <Divider />
+
+                                                <Space direction="vertical" style={{ width: '100%' }}>
+                                                    <Title level={5}>账户安全</Title>
+                                                    <List>
+                                                        <List.Item
+                                                            actions={[
+                                                                <Button
+                                                                    key="change-password"
+                                                                    onClick={handleChangePassword}
+                                                                >
+                                                                    修改
+                                                                </Button>,
+                                                            ]}
+                                                        >
+                                                            <List.Item.Meta
+                                                                avatar={<LockOutlined />}
+                                                                title="密码"
+                                                                description="用于保护账户安全，建议定期更换"
+                                                            />
+                                                        </List.Item>
+                                                    </List>
+                                                </Space>
+                                            </TabPane>
+
+                                            {user.role === 'ADMIN' && (
+                                                <TabPane tab="操作日志" key="logs">
+                                                    <Spin spinning={logsLoading}>
+                                                        <Table
+                                                            dataSource={userLogs}
+                                                            columns={columns}
+                                                            rowKey="id"
+                                                            pagination={{ pageSize: 10 }}
+                                                        />
+                                                    </Spin>
+                                                </TabPane>
+                                            )}
+                                        </Tabs>
+                                    </Card>
+                                </Col>
+                            </Row>
+                        </div>
+                    )}
+                </Spin>
             </Content>
         </Layout>
     );

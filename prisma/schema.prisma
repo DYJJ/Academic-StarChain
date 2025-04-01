@@ -32,8 +32,8 @@ model User {
   avatarUrl     String?        @db.Text
   grades        Grade[]
   teacherGrades Grade[]        @relation("TeacherGrades")
-  verifications Verification[]
   systemLogs    SystemLog[]
+  verifications Verification[]
 
   @@map("users")
 }
@@ -61,9 +61,9 @@ model Grade {
   status       Status        @default(PENDING)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  course       Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
   student      User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
   teacher      User          @relation("TeacherGrades", fields: [teacherId], references: [id], onDelete: Cascade)
-  course       Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
   verification Verification?
 
   @@index([studentId])

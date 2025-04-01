@@ -1,0 +1,59 @@
+[1mdiff --git a/app/components/Navbar.tsx b/app/components/Navbar.tsx[m
+[1mindex 80534c9..5b73154 100644[m
+[1m--- a/app/components/Navbar.tsx[m
+[1m+++ b/app/components/Navbar.tsx[m
+[36m@@ -28,6 +28,7 @@[m [mtype User = {[m
+     name: string;[m
+     email: string;[m
+     role: 'ADMIN' | 'TEACHER' | 'STUDENT';[m
+[32m+[m[32m    avatarUrl?: string;[m
+ };[m
+ [m
+ export default function Navbar() {[m
+[36m@@ -51,6 +52,17 @@[m [mexport default function Navbar() {[m
+         }[m
+ [m
+         fetchUserData();[m
+[32m+[m
+[32m+[m[32m        // 添加事件监听器，当头像更新时刷新用户数据[m
+[32m+[m[32m        const handleProfileUpdate = () => {[m
+[32m+[m[32m            fetchUserData();[m
+[32m+[m[32m        };[m
+[32m+[m
+[32m+[m[32m        window.addEventListener('profile-updated', handleProfileUpdate);[m
+[32m+[m
+[32m+[m[32m        return () => {[m
+[32m+[m[32m            window.removeEventListener('profile-updated', handleProfileUpdate);[m
+[32m+[m[32m        };[m
+     }, []);[m
+ [m
+     const handleLogout = async () => {[m
+[36m@@ -126,7 +138,14 @@[m [mexport default function Navbar() {[m
+         <div>[m
+             <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0' }}>[m
+                 <Space align="center">[m
+[31m-                    <Avatar size="large" icon={<UserOutlined />} style={{ backgroundColor: user?.role === 'ADMIN' ? '#f56a00' : user?.role === 'TEACHER' ? '#1677ff' : '#52c41a' }} />[m
+[32m+[m[32m                    <Avatar[m
+[32m+[m[32m                        size="large"[m
+[32m+[m[32m                        src={user?.avatarUrl}[m
+[32m+[m[32m                        icon={!user?.avatarUrl ? <UserOutlined /> : undefined}[m
+[32m+[m[32m                        style={{[m
+[32m+[m[32m                            backgroundColor: !user?.avatarUrl ? (user?.role === 'ADMIN' ? '#f56a00' : user?.role === 'TEACHER' ? '#1677ff' : '#52c41a') : undefined[m
+[32m+[m[32m                        }}[m
+[32m+[m[32m                    />[m
+                     <div>[m
+                         <Text strong>{user?.name || '加载中...'}</Text>[m
+                         <div>[m
+[36m@@ -188,9 +207,10 @@[m [mexport default function Navbar() {[m
+                         <Dropdown overlay={userMenu} placement="bottomRight" arrow>[m
+                             <Space style={{ cursor: 'pointer', padding: '0 12px' }}>[m
+                                 <Avatar[m
+[31m-                                    icon={<UserOutlined />}[m
+[32m+[m[32m                                    src={user.avatarUrl}[m
+[32m+[m[32m                                    icon={!user.avatarUrl ? <UserOutlined /> : undefined}[m
+                                     style={{[m
+[31m-                                        backgroundColor: user.role === 'ADMIN' ? '#f56a00' : user.role === 'TEACHER' ? '#1677ff' : '#52c41a'[m
+[32m+[m[32m                                        backgroundColor: !user.avatarUrl ? (user.role === 'ADMIN' ? '#f56a00' : user.role === 'TEACHER' ? '#1677ff' : '#52c41a') : undefined[m
+                                     }}[m
+                                 />[m
+                                 <span style={{ display: { xs: 'none', sm: 'inline-block' } }}>{user.name}</span>[m

@@ -72,11 +72,21 @@ export default function AvatarUpload({ currentAvatar, onAvatarChange, userRole }
             }
 
             // 记录日志
-            await logAction(LogAction.UPDATE_AVATAR, '用户更新了头像');
+            try {
+                await logAction(LogAction.UPDATE_AVATAR, '用户更新了头像');
+            } catch (logError) {
+                console.error('记录头像更新日志失败:', logError);
+                // 继续处理，不影响上传流程
+            }
 
             // 更新头像
             onAvatarChange(result.avatarUrl);
             message.success('头像上传成功!');
+
+            // 触发自定义事件通知组件刷新
+            const profileUpdateEvent = new Event('profile-updated');
+            window.dispatchEvent(profileUpdateEvent);
+
             onSuccess(result, file);
         } catch (error: any) {
             console.error('上传错误:', error);

@@ -104,7 +104,19 @@ npx prisma migrate dev
 npm run db:seed
 ```
 
-5. 如果一切顺利，您应该会看到成功消息
+> 注意：如果执行`npm run db:seed`出现错误，请确保您已经安装了必要的依赖：
+
+```bash
+npm install dotenv
+```
+
+5. 如果一切顺利，您应该会看到成功创建了三个用户（管理员、教师和学生）以及5门课程
+
+6. 现在您可以使用以下账户登录系统：
+
+   - **管理员账号**: admin@example.com / 密码: 123456
+   - **教师账号**: teacher@example.com / 密码: 123456
+   - **学生账号**: student@example.com / 密码: 123456
 
 ## 常见问题与解决方案
 
@@ -144,6 +156,18 @@ npm run db:seed
 **解决方案**：
 - 如果您想重新创建所有表，可以在Navicat中右键点击数据库，选择"删除数据库"并重新创建
 - 然后重新执行初始化命令
+
+### 问题5：npm run db:seed 命令不可用
+
+**症状**：执行命令时提示找不到脚本
+
+**解决方案**：
+- 确保您使用的是最新版本的代码
+- 检查package.json文件中是否包含"db:seed"脚本
+- 如果没有，可以手动编辑package.json文件，在"scripts"部分添加：
+  ```json
+  "db:seed": "node seed.js"
+  ```
 
 ## 附录：远程数据库连接
 

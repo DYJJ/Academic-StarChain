@@ -165,11 +165,37 @@ npx prisma migrate dev
 
 #### 第5步：填充初始数据
 
-运行以下命令添加测试数据：
+运行以下命令添加测试数据（管理员、教师、学生账号和课程）：
 
 ```bash
 npm run db:seed
 ```
+
+> **重要提示**：如果遇到提示找不到脚本的错误，请确保您的`package.json`文件中包含`db:seed`脚本。
+> 
+> 如果没有此脚本，请手动编辑`package.json`文件，在`"scripts"`部分添加：
+> ```json
+> "db:seed": "node seed.js"
+> ```
+> 
+> 并安装必要的依赖：
+> ```bash
+> npm install dotenv
+> ```
+
+#### 登录系统
+
+完成数据库配置后，您可以使用以下默认账户登录系统：
+
+* **管理员**:
+  * 账号: admin@example.com
+  * 密码: 123456
+* **教师**:
+  * 账号: teacher@example.com
+  * 密码: 123456
+* **学生**:
+  * 账号: student@example.com
+  * 密码: 123456
 
 #### 常见问题排查
 
@@ -177,6 +203,8 @@ npm run db:seed
 - **权限问题**：确保用户有创建表的权限
 - **特殊字符**：如果密码中有特殊字符，请在.env文件中使用URL编码
 - **防火墙**：如果连接远程数据库，确保防火墙允许3306端口通信
+
+> 详细的数据库配置教程请查看：[deployment/database-setup-guide.md](deployment/database-setup-guide.md)
 
 ## 系统使用指南
 

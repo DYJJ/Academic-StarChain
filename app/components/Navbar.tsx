@@ -28,6 +28,7 @@ type User = {
     name: string;
     email: string;
     role: 'ADMIN' | 'TEACHER' | 'STUDENT';
+    avatarUrl?: string;
 };
 
 export default function Navbar() {
@@ -51,6 +52,17 @@ export default function Navbar() {
         }
 
         fetchUserData();
+
+        // 添加事件监听器，当头像更新时刷新用户数据
+        const handleProfileUpdate = () => {
+            fetchUserData();
+        };
+
+        window.addEventListener('profile-updated', handleProfileUpdate);
+
+        return () => {
+            window.removeEventListener('profile-updated', handleProfileUpdate);
+        };
     }, []);
 
     const handleLogout = async () => {
@@ -126,7 +138,14 @@ export default function Navbar() {
         <div>
             <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0' }}>
                 <Space align="center">
-                    <Avatar size="large" icon={<UserOutlined />} style={{ backgroundColor: user?.role === 'ADMIN' ? '#f56a00' : user?.role === 'TEACHER' ? '#1677ff' : '#52c41a' }} />
+                    <Avatar
+                        size="large"
+                        src={user?.avatarUrl}
+                        icon={!user?.avatarUrl ? <UserOutlined /> : undefined}
+                        style={{
+                            backgroundColor: !user?.avatarUrl ? (user?.role === 'ADMIN' ? '#f56a00' : user?.role === 'TEACHER' ? '#1677ff' : '#52c41a') : undefined
+                        }}
+                    />
                     <div>
                         <Text strong>{user?.name || '加载中...'}</Text>
                         <div>
@@ -188,9 +207,10 @@ export default function Navbar() {
                         <Dropdown overlay={userMenu} placement="bottomRight" arrow>
                             <Space style={{ cursor: 'pointer', padding: '0 12px' }}>
                                 <Avatar
-                                    icon={<UserOutlined />}
+                                    src={user.avatarUrl}
+                                    icon={!user.avatarUrl ? <UserOutlined /> : undefined}
                                     style={{
-                                        backgroundColor: user.role === 'ADMIN' ? '#f56a00' : user.role === 'TEACHER' ? '#1677ff' : '#52c41a'
+                                        backgroundColor: !user.avatarUrl ? (user.role === 'ADMIN' ? '#f56a00' : user.role === 'TEACHER' ? '#1677ff' : '#52c41a') : undefined
                                     }}
                                 />
                                 <span style={{ display: { xs: 'none', sm: 'inline-block' } }}>{user.name}</span>

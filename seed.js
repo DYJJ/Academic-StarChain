@@ -1,14 +1,49 @@
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const mysql = require('mysql2/promise');
+require('dotenv').config();
+
+// 从.env文件加载数据库连接信息
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+    console.error('缺少必要的环境变量 DATABASE_URL，请检查.env文件');
+    process.exit(1);
+}
+
+// 从 DATABASE_URL 解析数据库连接参数
+// 格式: mysql://username:password@host:port/database
+function parseConnectionString(connectionString) {
+    try {
+        // 匹配 URL 结构
+        const matches = connectionString.match(/mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/);
+
+        if (!matches || matches.length < 6) {
+            throw new Error('数据库连接字符串格式不正确');
+        }
+
+        return {
+            user: matches[1],
+            password: matches[2],
+            host: matches[3],
+            port: parseInt(matches[4]),
+            database: matches[5]
+        };
+    } catch (error) {
+        console.error('解析数据库连接字符串失败:', error);
+        process.exit(1);
+    }
+}
 
 async function main() {
+    const dbConfig = parseConnectionString(DATABASE_URL);
+
     // 连接到数据库
     const connection = await mysql.createConnection({
-        host: 'localhost',
-        user: 'root',
-        password: 'zpzch1988+',
-        database: 'student_grade_cert'
+        host: dbConfig.host,
+        user: dbConfig.user,
+        password: dbConfig.password,
+        database: dbConfig.database,
+        port: dbConfig.port
     });
 
     console.log('开始填充数据...');
@@ -16,25 +51,25 @@ async function main() {
     try {
         // 创建管理员用户
         const adminId = uuidv4();
-        const adminPassword = await bcrypt.hash('admin123', 10);
+        const adminPassword = await bcrypt.hash('123456', 10);
         await connection.execute(
             'INSERT INTO users (id, email, password, name, role, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
-            [adminId, 'admin@example.com', adminPassword, '管理员', 'ADMIN']
+            [adminId, 'admin@example.com', adminPassword, '系统管理员', 'ADMIN']
         );
         console.log('创建了管理员用户');
 
         // 创建教师用户
         const teacherId = uuidv4();
-        const teacherPassword = await bcrypt.hash('teacher123', 10);
+        const teacherPassword = await bcrypt.hash('123456', 10);
         await connection.execute(
             'INSERT INTO users (id, email, password, name, role, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
-            [teacherId, 'teacher@example.com', teacherPassword, '张老师', 'TEACHER']
+            [teacherId, 'teacher@example.com', teacherPassword, '张教授', 'TEACHER']
         );
         console.log('创建了教师用户');
 
         // 创建学生用户
         const studentId = uuidv4();
-        const studentPassword = await bcrypt.hash('student123', 10);
+        const studentPassword = await bcrypt.hash('123456', 10);
         await connection.execute(
             'INSERT INTO users (id, email, password, name, role, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
             [studentId, 'student@example.com', studentPassword, '李同学', 'STUDENT']
