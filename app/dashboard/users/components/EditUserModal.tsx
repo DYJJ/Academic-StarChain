@@ -148,13 +148,7 @@ export default function EditUserModal({ user, isOpen, onClose, onEditUser }: Edi
     form.validateFields()
       .then(values => {
         // 准备提交数据
-        const userData: {
-          id: string;
-          name: any;
-          email: any;
-          role: any;
-          password?: string;
-        } = {
+        const userData = {
           id: user.id,
           name: values.name,
           email: values.email,

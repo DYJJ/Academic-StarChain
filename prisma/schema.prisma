@@ -29,6 +29,7 @@ model User {
   role          Role           @default(STUDENT)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  avatarUrl     String?        @db.Text
   grades        Grade[]
   teacherGrades Grade[]        @relation("TeacherGrades")
   verifications Verification[]

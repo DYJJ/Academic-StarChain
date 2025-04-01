@@ -1,0 +1,6 @@
+{
+  "/dashboard/profile/page": "app/dashboard/profile/page.js",
+  "/api/logs/route": "app/api/logs/route.js",
+  "/api/auth/me/route": "app/api/auth/me/route.js",
+  "/api/users/uploadAvatar/route": "app/api/users/uploadAvatar/route.js"
+}

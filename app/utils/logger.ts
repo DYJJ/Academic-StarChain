@@ -6,11 +6,9 @@
 export enum LogAction {
     LOGIN = '用户登录',
     LOGOUT = '用户登出',
-    AUTH = '授权操作',
     CREATE_USER = '创建用户',
     UPDATE_USER = '更新用户',
     DELETE_USER = '删除用户',
-    USER_PROFILE = '个人资料',
     CREATE_COURSE = '创建课程',
     UPDATE_COURSE = '更新课程',
     DELETE_COURSE = '删除课程',
@@ -19,6 +17,8 @@ export enum LogAction {
     DELETE_GRADE = '删除成绩',
     VERIFY_GRADE = '验证成绩',
     SYSTEM_SETTING = '系统设置',
+    USER_PROFILE = '查看个人资料',
+    UPDATE_AVATAR = '更新头像',
 }
 
 /**

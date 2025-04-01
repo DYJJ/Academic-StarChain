@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Form, Input, Button, Select, Typography, Card, Steps, message, Space, Divider, Result, Spin } from 'antd';
-import { UserOutlined, MailOutlined, LockOutlined, TeamOutlined, RocketOutlined, ArrowLeftOutlined, KeyOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Select, Typography, Card, Spin, message, Divider, Steps, Result, Space } from 'antd';
+import { UserOutlined, LockOutlined, MailOutlined, IdcardOutlined, HomeOutlined, ArrowRightOutlined, CheckOutlined } from '@ant-design/icons';
+import { motion } from 'framer-motion';
 
-const { Title, Text } = Typography;
-const { Option } = Select;
+const { Title, Text, Paragraph } = Typography;
 const { Step } = Steps;
+const { Option } = Select;
 
 export default function Register() {
   const router = useRouter();
@@ -123,7 +124,7 @@ export default function Register() {
                     setCurrentStep(1);
                   });
                 }}
-                icon={<ArrowLeftOutlined />}
+                icon={<ArrowRightOutlined />}
                 style={{
                   height: '44px',
                   fontWeight: 500,
@@ -148,12 +149,12 @@ export default function Register() {
               <Select size="large">
                 <Option value="STUDENT">
                   <Space>
-                    <TeamOutlined /> 学生
+                    <IdcardOutlined /> 学生
                   </Space>
                 </Option>
                 <Option value="TEACHER">
                   <Space>
-                    <TeamOutlined /> 教师
+                    <IdcardOutlined /> 教师
                   </Space>
                 </Option>
               </Select>
@@ -172,12 +173,15 @@ export default function Register() {
               >
                 <ul style={{ paddingLeft: '20px', margin: '8px 0' }}>
                   {(form.getFieldValue('role') === 'STUDENT' ? studentFeatures : teacherFeatures).map((feature, index) => (
-                    <li
+                    <motion.li
                       key={index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
                       style={{ margin: '8px 0' }}
                     >
                       <Text>{feature}</Text>
-                    </li>
+                    </motion.li>
                   ))}
                 </ul>
               </Card>
@@ -244,7 +248,10 @@ export default function Register() {
       alignItems: 'center',
       padding: '20px'
     }}>
-      <div
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
         style={{ width: '100%', maxWidth: '480px' }}
       >
         <Card
@@ -270,8 +277,8 @@ export default function Register() {
               current={currentStep}
               items={[
                 { title: '基本信息', icon: <UserOutlined /> },
-                { title: '角色选择', icon: <TeamOutlined /> },
-                { title: '完成', icon: <KeyOutlined /> }
+                { title: '角色选择', icon: <IdcardOutlined /> },
+                { title: '完成', icon: <CheckOutlined /> }
               ]}
               style={{ marginBottom: '24px' }}
             />
@@ -300,7 +307,7 @@ export default function Register() {
                     <Button type="link">直接登录</Button>
                   </Link>
                   <Link href="/">
-                    <Button icon={<RocketOutlined />}>返回首页</Button>
+                    <Button icon={<HomeOutlined />}>返回首页</Button>
                   </Link>
                 </Space>
               </div>
@@ -308,10 +315,16 @@ export default function Register() {
           )}
         </Card>
 
-        <div style={{ textAlign: 'center', marginTop: '20px', color: 'rgba(0,0,0,0.45)' }}>
-          © 2023 学生成绩认证系统 - 保障教育数据真实可信
-        </div>
-      </div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
+        >
+          <Text style={{ display: 'block', textAlign: 'center', marginTop: '20px', color: 'rgba(0,0,0,0.45)' }}>
+            © 2023 学生成绩认证系统 - 保障教育数据真实可信
+          </Text>
+        </motion.div>
+      </motion.div>
     </div>
   );
 } 

@@ -2,13 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { Modal, Form, Input, InputNumber, Select, Button, Typography, Space, Avatar, Tag, Tooltip, Tabs, Alert, Badge, Divider } from 'antd';
-import { BookOutlined, EditOutlined, SaveOutlined, ReadOutlined, FileTextOutlined, NumberOutlined, CalendarOutlined, RocketOutlined, HistoryOutlined, SwapOutlined, CheckOutlined, CodeOutlined } from '@ant-design/icons';
-import { Course } from '../page';
+import { BookOutlined, EditOutlined, SaveOutlined, ReadOutlined, FileTextOutlined, NumberOutlined, CalendarOutlined, RocketOutlined, HistoryOutlined, CheckOutlined, CodeOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
 const { TextArea } = Input;
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
+
+type Course = {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  credit: number;
+  semester: string;
+  difficulty?: number;
+};
 
 type EditCourseModalProps = {
   course: Course;
@@ -149,11 +158,11 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
         <Divider orientation="left">学期</Divider>
         <Space>
           <Tag icon={<HistoryOutlined />} color="default">
-            原值: {originalValues.semester.replace('-', '~').replace('-', ' 学期')}
+            原值: {originalValues.semester ? originalValues.semester.replace('-', '~').replace('-', ' 学期') : ''}
           </Tag>
           {currentValues.semester !== originalValues.semester && (
             <Tag icon={<EditOutlined />} color="blue">
-              新值: {currentValues.semester.replace('-', '~').replace('-', ' 学期')}
+              新值: {currentValues.semester ? currentValues.semester.replace('-', '~').replace('-', ' 学期') : ''}
             </Tag>
           )}
         </Space>
@@ -324,7 +333,7 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
                       <Tooltip title="查看修改前后对比">
                         <Button
                           type="default"
-                          icon={<SwapOutlined />}
+                          icon={<CheckOutlined />}
                           onClick={() => setActiveTab('compare')}
                         >
                           查看变更
@@ -358,7 +367,7 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
             key: 'compare',
             label: (
               <span>
-                <SwapOutlined /> 变更对比
+                <CheckOutlined /> 变更对比
               </span>
             ),
             children: (

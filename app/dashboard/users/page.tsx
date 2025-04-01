@@ -249,7 +249,7 @@ export default function UsersManagement() {
         { text: '教师', value: 'TEACHER' },
         { text: '学生', value: 'STUDENT' },
       ],
-      onFilter: (value: string | number | boolean, record: User) => record.role === value.toString(),
+      onFilter: (value: string, record: User) => record.role === value,
     },
     {
       title: '注册时间',

@@ -27,7 +27,7 @@ type User = {
   role: 'ADMIN' | 'TEACHER' | 'STUDENT';
 };
 
-export interface Course {
+type Course = {
   id: string;
   code: string;
   name: string;
@@ -36,8 +36,7 @@ export interface Course {
   semester: string;
   createdAt: string;
   updatedAt?: string;
-  status?: string;
-}
+};
 
 export default function CoursesManagement() {
   const router = useRouter();
@@ -258,7 +257,7 @@ export default function CoursesManagement() {
         .sort()
         .reverse()
         .map(semester => ({ text: semester, value: semester })),
-      onFilter: (value: string | number | boolean, record: Course) => record.semester === value.toString()
+      onFilter: (value: string, record: Course) => record.semester === value,
     },
     {
       title: '描述',

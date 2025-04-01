@@ -15,6 +15,7 @@ import {
 import Navbar from '../../components/Navbar';
 import BackButton from '../../components/BackButton';
 import { LogAction, logAction } from '../../utils/logger';
+import AvatarUpload from './components/AvatarUpload';
 
 const { Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
@@ -27,6 +28,7 @@ type User = {
     role: 'ADMIN' | 'TEACHER' | 'STUDENT';
     createdAt: string;
     updatedAt?: string;
+    avatarUrl?: string;
 };
 
 type LogEntry = {
@@ -146,6 +148,16 @@ export default function ProfilePage() {
         }
     };
 
+    // 处理头像更新
+    const handleAvatarChange = (newAvatarUrl: string) => {
+        if (user) {
+            setUser({
+                ...user,
+                avatarUrl: newAvatarUrl
+            });
+        }
+    };
+
     // 退出登录
     const handleLogout = async () => {
         try {
@@ -236,11 +248,13 @@ export default function ProfilePage() {
                         <Col xs={24} md={8}>
                             <Card>
                                 <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                                    <Avatar
-                                        size={100}
-                                        icon={<UserOutlined />}
-                                        style={{ backgroundColor: user?.role === 'ADMIN' ? '#f56a00' : user?.role === 'TEACHER' ? '#1677ff' : '#52c41a' }}
-                                    />
+                                    {user && (
+                                        <AvatarUpload
+                                            currentAvatar={user.avatarUrl || null}
+                                            onAvatarChange={handleAvatarChange}
+                                            userRole={user.role}
+                                        />
+                                    )}
                                     <Title level={3} style={{ marginTop: 16, marginBottom: 0 }}>{user?.name}</Title>
                                     <div>
                                         {user && getRoleTag(user.role)}
