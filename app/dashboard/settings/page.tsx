@@ -4,11 +4,18 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import { LogAction, logAction } from '../../utils/logger';
+<<<<<<< HEAD
 import { Table, Button, Card, Select, DatePicker, Space, Typography, Input, message, Tooltip, Badge, Tag, Modal } from 'antd';
 import { DownloadOutlined, SearchOutlined, UndoOutlined, EyeOutlined, FileTextOutlined, InfoCircleOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import BackButton from '../../components/BackButton';
 import dayjs from 'dayjs';
 import LogDetailModal from './components/LogDetailModal';
+=======
+import { Table, Button, Card, Select, DatePicker, Space, Typography, Input, message } from 'antd';
+import { DownloadOutlined, SearchOutlined, UndoOutlined } from '@ant-design/icons';
+import BackButton from '../../components/BackButton';
+import dayjs from 'dayjs';
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -57,10 +64,13 @@ export default function Settings() {
         action: '',
         dateRange: null as null | [dayjs.Dayjs, dayjs.Dayjs]
     });
+<<<<<<< HEAD
     const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
     const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [clearLogsLoading, setClearLogsLoading] = useState(false);
     const { confirm } = Modal;
+=======
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
 
     // 操作类型选项
     const actionOptions = Object.values(LogAction);
@@ -184,6 +194,7 @@ export default function Settings() {
         message.success('日志导出成功');
     };
 
+<<<<<<< HEAD
     const showClearLogsConfirm = () => {
         confirm({
             title: '确定要清空所有日志吗？',
@@ -225,11 +236,14 @@ export default function Settings() {
         }
     };
 
+=======
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     const getRoleName = (role: string) => {
         return role === 'ADMIN' ? '管理员' :
             role === 'TEACHER' ? '教师' : '学生';
     };
 
+<<<<<<< HEAD
     const showLogDetail = (log: LogEntry) => {
         setSelectedLog(log);
         setDetailModalVisible(true);
@@ -237,6 +251,8 @@ export default function Settings() {
         logAction(LogAction.SYSTEM_SETTING, `查看日志详情: ${log.id}`);
     };
 
+=======
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     // 表格列配置
     const columns = [
         {
@@ -260,25 +276,33 @@ export default function Settings() {
             title: '角色',
             dataIndex: ['user', 'role'],
             key: 'role',
+<<<<<<< HEAD
             render: (role: string) => (
                 <Tag color={role === 'ADMIN' ? 'red' : role === 'TEACHER' ? 'green' : 'default'}>
                     {getRoleName(role)}
                 </Tag>
             )
+=======
+            render: (role: string) => getRoleName(role)
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
         },
         {
             title: '操作类型',
             dataIndex: 'action',
             key: 'action',
+<<<<<<< HEAD
             render: (text: string) => (
                 <Tag color="blue">{text}</Tag>
             )
+=======
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
         },
         {
             title: '详情',
             dataIndex: 'details',
             key: 'details',
             ellipsis: true,
+<<<<<<< HEAD
             render: (details: string, record: LogEntry) => (
                 <Space>
                     {details ?
@@ -312,6 +336,13 @@ export default function Settings() {
                     />
                 </Tooltip>
             ),
+=======
+        },
+        {
+            title: 'IP地址',
+            dataIndex: 'ipAddress',
+            key: 'ipAddress',
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
         }
     ];
 
@@ -328,6 +359,7 @@ export default function Settings() {
                         </div>
                     }
                     extra={
+<<<<<<< HEAD
                         <Space>
                             <Button
                                 type="primary"
@@ -346,6 +378,15 @@ export default function Settings() {
                                 清空日志
                             </Button>
                         </Space>
+=======
+                        <Button
+                            type="primary"
+                            icon={<DownloadOutlined />}
+                            onClick={exportLogs}
+                        >
+                            导出日志
+                        </Button>
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
                     }
                 >
                     {/* 筛选区域 */}
@@ -429,6 +470,7 @@ export default function Settings() {
                     />
                 </Card>
             </div>
+<<<<<<< HEAD
 
             {/* 日志详情Modal */}
             <LogDetailModal
@@ -436,6 +478,8 @@ export default function Settings() {
                 onClose={() => setDetailModalVisible(false)}
                 log={selectedLog}
             />
+=======
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
         </div>
     );
 } 

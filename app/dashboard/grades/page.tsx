@@ -98,13 +98,21 @@ export default function GradesManagement() {
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [showStatistics, setShowStatistics] = useState(false);
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
   // 模态框状态
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState<Grade | null>(null);
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
   // 分页状态
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -200,6 +208,7 @@ export default function GradesManagement() {
   // 过滤成绩
   const filteredGrades = grades.filter(grade => {
     // 搜索词过滤（学生姓名、课程名称、课程代码）
+<<<<<<< HEAD
     const searchMatch =
       searchTerm === '' ||
       grade.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -212,6 +221,20 @@ export default function GradesManagement() {
     // 状态过滤
     const statusMatch = selectedStatus === '' || grade.status === selectedStatus;
 
+=======
+    const searchMatch = 
+      searchTerm === '' || 
+      grade.student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      grade.course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      grade.course.code.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // 课程过滤
+    const courseMatch = selectedCourse === '' || grade.course.id === selectedCourse;
+    
+    // 状态过滤
+    const statusMatch = selectedStatus === '' || grade.status === selectedStatus;
+    
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     return searchMatch && courseMatch && statusMatch;
   });
 
@@ -277,7 +300,11 @@ export default function GradesManagement() {
   // 删除成绩
   const handleDeleteGrade = async () => {
     if (!selectedGrade) return;
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     try {
       setLoading(true);
       const response = await fetch(`/api/grades/${selectedGrade.id}`, {
@@ -339,7 +366,11 @@ export default function GradesManagement() {
         <div>
           <div>{text}</div>
           <Text type="secondary" style={{ fontSize: '12px' }}>{record.student.email}</Text>
+<<<<<<< HEAD
         </div>
+=======
+              </div>
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
       ),
     },
     {
@@ -349,7 +380,11 @@ export default function GradesManagement() {
         <div>
           <div>{record.course.name}</div>
           <Text type="secondary" style={{ fontSize: '12px' }}>{record.course.code}</Text>
+<<<<<<< HEAD
         </div>
+=======
+            </div>
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
       ),
     },
     {
@@ -441,8 +476,13 @@ export default function GradesManagement() {
                 icon={<CloseCircleOutlined />}
                 onClick={() => handleVerifyGrade(record.id, 'REJECTED')}
               />
+<<<<<<< HEAD
             </>
           )}
+=======
+                      </>
+                    )}
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
         </Space>
       ),
     },
@@ -465,7 +505,11 @@ export default function GradesManagement() {
                 <Button
                   type={showStatistics ? 'default' : 'primary'}
                   icon={<BarChartOutlined />}
+<<<<<<< HEAD
                   onClick={() => setShowStatistics(!showStatistics)}
+=======
+                onClick={() => setShowStatistics(!showStatistics)}
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
                 >
                   {showStatistics ? '隐藏统计' : '显示统计'}
                 </Button>
@@ -474,8 +518,13 @@ export default function GradesManagement() {
                     type="primary"
                     icon={<PlusOutlined />}
                     onClick={() => setIsAddModalOpen(true)}
+<<<<<<< HEAD
                   >
                     添加成绩
+=======
+                >
+                  添加成绩
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
                   </Button>
                 )}
               </Space>
@@ -492,8 +541,13 @@ export default function GradesManagement() {
               <Col span={8}>
                 <Input
                   placeholder="搜索学生/课程"
+<<<<<<< HEAD
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+=======
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
                   prefix={<SearchOutlined />}
                   allowClear
                 />
@@ -502,7 +556,11 @@ export default function GradesManagement() {
                 <Select
                   placeholder="选择课程"
                   style={{ width: '100%' }}
+<<<<<<< HEAD
                   value={selectedCourse}
+=======
+                          value={selectedCourse}
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
                   onChange={(value) => setSelectedCourse(value)}
                   allowClear
                 >
@@ -517,7 +575,11 @@ export default function GradesManagement() {
                 <Select
                   placeholder="选择状态"
                   style={{ width: '100%' }}
+<<<<<<< HEAD
                   value={selectedStatus}
+=======
+                          value={selectedStatus}
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
                   onChange={(value) => setSelectedStatus(value)}
                   allowClear
                 >
@@ -544,6 +606,7 @@ export default function GradesManagement() {
               }}
             />
           </Card>
+<<<<<<< HEAD
 
           {/* 添加成绩模态框 */}
           <AddGradeModal
@@ -568,6 +631,32 @@ export default function GradesManagement() {
           )}
 
           {/* 删除确认模态框 */}
+=======
+      
+      {/* 添加成绩模态框 */}
+        <AddGradeModal
+            isOpen={isAddModalOpen}
+            onClose={() => setIsAddModalOpen(false)}
+            onSubmit={handleAddGrade}
+          students={students}
+          courses={courses}
+            loading={loading}
+        />
+      
+      {/* 编辑成绩模态框 */}
+          {selectedGrade && (
+        <EditGradeModal
+              isOpen={isEditModalOpen}
+              onClose={() => setIsEditModalOpen(false)}
+              onSubmit={handleEditGrade}
+          grade={selectedGrade}
+              loading={loading}
+              userRole={currentUser?.role || ''}
+        />
+      )}
+      
+      {/* 删除确认模态框 */}
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
           <Modal
             title="确认删除"
             open={isDeleteModalOpen}
@@ -583,7 +672,11 @@ export default function GradesManagement() {
                 <p>学生: {selectedGrade.student.name}</p>
                 <p>课程: {selectedGrade.course.name} ({selectedGrade.course.code})</p>
                 <p>分数: {selectedGrade.score}</p>
+<<<<<<< HEAD
               </div>
+=======
+            </div>
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
             )}
           </Modal>
         </div>

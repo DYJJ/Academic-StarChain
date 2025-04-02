@@ -32,8 +32,13 @@ model User {
   avatarUrl     String?        @db.Text
   grades        Grade[]
   teacherGrades Grade[]        @relation("TeacherGrades")
+<<<<<<< HEAD
   systemLogs    SystemLog[]
   verifications Verification[]
+=======
+  verifications Verification[]
+  systemLogs    SystemLog[]
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
 
   @@map("users")
 }
@@ -61,9 +66,15 @@ model Grade {
   status       Status        @default(PENDING)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+<<<<<<< HEAD
   course       Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
   student      User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
   teacher      User          @relation("TeacherGrades", fields: [teacherId], references: [id], onDelete: Cascade)
+=======
+  student      User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher      User          @relation("TeacherGrades", fields: [teacherId], references: [id], onDelete: Cascade)
+  course       Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
   verification Verification?
 
   @@index([studentId])

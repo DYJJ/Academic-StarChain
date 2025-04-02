@@ -1,14 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { Modal, Form, Input, InputNumber, Select, Button, Typography, Space, Avatar, Tag, Tooltip, Tabs, Alert, Badge, Divider, Spin } from 'antd';
 import { BookOutlined, EditOutlined, SaveOutlined, ReadOutlined, FileTextOutlined, NumberOutlined, CalendarOutlined, RocketOutlined, HistoryOutlined, CheckOutlined, CodeOutlined, TeamOutlined } from '@ant-design/icons';
+=======
+import { Modal, Form, Input, InputNumber, Select, Button, Typography, Space, Avatar, Tag, Tooltip, Tabs, Alert, Badge, Divider } from 'antd';
+import { BookOutlined, EditOutlined, SaveOutlined, ReadOutlined, FileTextOutlined, NumberOutlined, CalendarOutlined, RocketOutlined, HistoryOutlined, CheckOutlined, CodeOutlined } from '@ant-design/icons';
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
 
 const { Option } = Select;
 const { TextArea } = Input;
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
 
+<<<<<<< HEAD
 type User = {
   id: string;
   name: string;
@@ -16,6 +22,8 @@ type User = {
   role: 'ADMIN' | 'TEACHER' | 'STUDENT';
 };
 
+=======
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
 type Course = {
   id: string;
   code: string;
@@ -24,8 +32,11 @@ type Course = {
   credit: number;
   semester: string;
   difficulty?: number;
+<<<<<<< HEAD
   teachers?: User[];
   teacherIds?: string[];
+=======
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
 };
 
 type EditCourseModalProps = {
@@ -41,8 +52,11 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
   const [hasChanges, setHasChanges] = useState(false);
   const [changeCount, setChangeCount] = useState(0);
   const [originalValues, setOriginalValues] = useState<Course>({ ...course });
+<<<<<<< HEAD
   const [teachers, setTeachers] = useState<User[]>([]);
   const [loadingTeachers, setLoadingTeachers] = useState(false);
+=======
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
 
   // 表单标题样式
   const formItemLabelStyle = {
@@ -52,6 +66,7 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
     gap: '8px'
   };
 
+<<<<<<< HEAD
   // 获取所有教师
   useEffect(() => {
     if (isOpen) {
@@ -96,6 +111,8 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
     }
   }, [isOpen, course.id, form]);
 
+=======
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
   // 初始化表单
   useEffect(() => {
     form.setFieldsValue({
@@ -120,11 +137,14 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
     if (currentValues.credit !== originalValues.credit) changes.push('学分');
     if (currentValues.semester !== originalValues.semester) changes.push('学期');
 
+<<<<<<< HEAD
     // 检查教师变更
     if (JSON.stringify(currentValues.teacherIds || []) !== JSON.stringify(originalValues.teacherIds || [])) {
       changes.push('教师分配');
     }
 
+=======
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     setChangeCount(changes.length);
     setHasChanges(changes.length > 0);
   };
@@ -136,8 +156,12 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
       name: course.name,
       description: course.description,
       credit: course.credit,
+<<<<<<< HEAD
       semester: course.semester,
       teacherIds: originalValues.teacherIds || []
+=======
+      semester: course.semester
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     });
     setHasChanges(false);
     setChangeCount(0);
@@ -228,6 +252,7 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
           )}
         </Space>
 
+<<<<<<< HEAD
         <Divider orientation="left">课程教师</Divider>
         <Space direction="vertical" style={{ width: '100%' }}>
           <div>
@@ -267,6 +292,8 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
           )}
         </Space>
 
+=======
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
         <Divider orientation="left">课程描述</Divider>
         <div>
           <Paragraph>
@@ -427,6 +454,7 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
                   </Select>
                 </Form.Item>
 
+<<<<<<< HEAD
                 <Form.Item
                   name="teacherIds"
                   label={<div style={formItemLabelStyle}><TeamOutlined /> 教师分配</div>}
@@ -445,6 +473,8 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
                   </Select>
                 </Form.Item>
 
+=======
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
                 <div style={{ textAlign: 'right', marginTop: 24 }}>
                   <Space>
                     {hasChanges && (

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <circle cx="32" cy="32" r="30" fill="#81c784"/>
   <circle cx="32" cy="25" r="12" fill="#ffffff"/>
@@ -5,4 +6,13 @@
   <path d="M12,38 L22,38 L22,52 L12,52 Z" fill="#4caf50"/>
   <path d="M42,38 L52,38 L52,52 L42,52 Z" fill="#4caf50"/>
   <rect x="22" y="15" width="20" height="5" fill="#4caf50"/>
+=======
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <circle cx="32" cy="32" r="30" fill="#81c784"/>
+  <circle cx="32" cy="25" r="12" fill="#ffffff"/>
+  <path d="M18,52 L18,39 C18,31 24,30 32,30 C40,30 46,31 46,39 L46,52" fill="#81c784"/>
+  <path d="M12,38 L22,38 L22,52 L12,52 Z" fill="#4caf50"/>
+  <path d="M42,38 L52,38 L52,52 L42,52 Z" fill="#4caf50"/>
+  <rect x="22" y="15" width="20" height="5" fill="#4caf50"/>
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
 </svg> 

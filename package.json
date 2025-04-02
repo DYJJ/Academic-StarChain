@@ -8,10 +8,14 @@
     "start": "next start",
     "lint": "next lint",
     "init-db": "ts-node ./src/scripts/init-db.ts",
+<<<<<<< HEAD
     "db:seed": "node prisma/seed.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
+=======
+    "db:seed": "node seed.js"
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
   },
   "dependencies": {
     "@ant-design/icons": "^6.0.0",
@@ -33,11 +37,17 @@
     "mysql2": "^3.14.0",
     "next": "13.4.19",
     "prisma": "^6.5.0",
+<<<<<<< HEAD
     "prop-types": "^15.8.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-icons": "^5.5.0",
     "react-responsive-masonry": "^2.7.1",
+=======
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-icons": "^5.5.0",
+>>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     "sharp": "^0.33.5",
     "uuid": "^11.1.0"
   },
