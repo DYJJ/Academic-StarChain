@@ -1,20 +1,13 @@
 'use client';
 
-<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { Modal, Form, Input, InputNumber, Select, Button, Typography, Space, Avatar, Tag, Rate, Tooltip, Spin } from 'antd';
 import { BookOutlined, NumberOutlined, CalendarOutlined, FileTextOutlined, ReadOutlined, RocketOutlined, BulbOutlined, TeamOutlined } from '@ant-design/icons';
-=======
-import { useState } from 'react';
-import { Modal, Form, Input, InputNumber, Select, Button, Typography, Space, Avatar, Tag, Rate, Tooltip } from 'antd';
-import { BookOutlined, NumberOutlined, CalendarOutlined, FileTextOutlined, ReadOutlined, RocketOutlined, BulbOutlined } from '@ant-design/icons';
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
 
 const { Option } = Select;
 const { TextArea } = Input;
 const { Title, Text } = Typography;
 
-<<<<<<< HEAD
 type User = {
   id: string;
   name: string;
@@ -22,8 +15,6 @@ type User = {
   role: 'ADMIN' | 'TEACHER' | 'STUDENT';
 };
 
-=======
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
 type Course = {
   code: string;
   name: string;
@@ -31,10 +22,7 @@ type Course = {
   credit: number;
   semester: string;
   difficulty?: number;
-<<<<<<< HEAD
   teacherIds?: string[];
-=======
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
 };
 
 type AddCourseModalProps = {
@@ -47,11 +35,8 @@ export default function AddCourseModal({ isOpen, onClose, onAddCourse }: AddCour
   const [form] = Form.useForm();
   const [difficulty, setDifficulty] = useState(3);
   const [preview, setPreview] = useState(false);
-<<<<<<< HEAD
   const [teachers, setTeachers] = useState<User[]>([]);
   const [loadingTeachers, setLoadingTeachers] = useState(false);
-=======
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
 
   // 表单标题样式
   const formItemLabelStyle = {
@@ -61,7 +46,6 @@ export default function AddCourseModal({ isOpen, onClose, onAddCourse }: AddCour
     gap: '8px'
   };
 
-<<<<<<< HEAD
   // 获取所有教师
   useEffect(() => {
     if (isOpen) {
@@ -85,8 +69,6 @@ export default function AddCourseModal({ isOpen, onClose, onAddCourse }: AddCour
     }
   };
 
-=======
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
   // 重置表单
   const handleReset = () => {
     form.resetFields();
@@ -213,12 +195,8 @@ export default function AddCourseModal({ isOpen, onClose, onAddCourse }: AddCour
           name: '',
           description: '',
           credit: 3,
-<<<<<<< HEAD
           semester: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}-1`,
           teacherIds: []
-=======
-          semester: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}-1`
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
         }}
         onFinish={handleSubmit}
       >
@@ -282,7 +260,6 @@ export default function AddCourseModal({ isOpen, onClose, onAddCourse }: AddCour
         </Form.Item>
 
         <Form.Item
-<<<<<<< HEAD
           name="teacherIds"
           label={<div style={formItemLabelStyle}><TeamOutlined /> 课程教师</div>}
           tooltip="选择负责教授此课程的教师"
@@ -303,8 +280,6 @@ export default function AddCourseModal({ isOpen, onClose, onAddCourse }: AddCour
         </Form.Item>
 
         <Form.Item
-=======
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
           label={<div style={formItemLabelStyle}><RocketOutlined /> 课程难度</div>}
           tooltip="设置课程的难度等级，帮助学生选课"
         >

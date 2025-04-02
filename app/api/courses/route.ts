@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { PrismaClient } from '@prisma/client';
-<<<<<<< HEAD
 import { logApiAction, logApiSuccess, logApiError } from '../../../lib/logMiddleware';
-=======
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
 
 // 创建Prisma客户端实例
 const prisma = new PrismaClient();
@@ -13,19 +10,11 @@ const prisma = new PrismaClient();
 function getCurrentUser(request: NextRequest) {
   const cookieStore = cookies();
   const userSession = cookieStore.get('user_session')?.value;
-<<<<<<< HEAD
 
   if (!userSession) {
     return null;
   }
 
-=======
-  
-  if (!userSession) {
-    return null;
-  }
-  
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
   try {
     return JSON.parse(userSession);
   } catch (error) {
@@ -38,18 +27,13 @@ function getCurrentUser(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     console.log('GET /api/courses 被调用');
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     // 使用Prisma查询课程
     console.log('开始查询课程数据');
     try {
       const courses = await prisma.course.findMany({
         orderBy: {
           code: 'asc'
-<<<<<<< HEAD
         },
         include: {
           teachers: {
@@ -88,15 +72,6 @@ export async function GET(request: NextRequest) {
         );
       }
 
-=======
-        }
-      });
-      console.log(`查询到 ${courses.length} 门课程`);
-      
-      return NextResponse.json({ courses }, { status: 200 });
-    } catch (dbError) {
-      console.error('数据库查询错误:', dbError);
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
       // 返回模拟数据作为备选
       const mockCourses = [
         {
@@ -107,12 +82,8 @@ export async function GET(request: NextRequest) {
           credit: 3,
           semester: '2023-2024-1',
           createdAt: new Date().toISOString(),
-<<<<<<< HEAD
           updatedAt: new Date().toISOString(),
           teachers: []
-=======
-          updatedAt: new Date().toISOString()
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
         },
         {
           id: '2',
@@ -122,12 +93,8 @@ export async function GET(request: NextRequest) {
           credit: 4,
           semester: '2023-2024-1',
           createdAt: new Date().toISOString(),
-<<<<<<< HEAD
           updatedAt: new Date().toISOString(),
           teachers: []
-=======
-          updatedAt: new Date().toISOString()
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
         },
         {
           id: '3',
@@ -137,12 +104,8 @@ export async function GET(request: NextRequest) {
           credit: 3,
           semester: '2023-2024-2',
           createdAt: new Date().toISOString(),
-<<<<<<< HEAD
           updatedAt: new Date().toISOString(),
           teachers: []
-=======
-          updatedAt: new Date().toISOString()
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
         }
       ];
       return NextResponse.json({ courses: mockCourses }, { status: 200 });
@@ -161,11 +124,7 @@ export async function POST(request: NextRequest) {
   try {
     // 获取当前用户
     const currentUser = getCurrentUser(request);
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     // 检查是否登录
     if (!currentUser) {
       return NextResponse.json(
@@ -173,7 +132,6 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
-<<<<<<< HEAD
 
     // 检查是否是管理员
     if (currentUser.role !== 'ADMIN') {
@@ -183,17 +141,11 @@ export async function POST(request: NextRequest) {
         `尝试创建课程但权限不足，当前角色: ${currentUser.role}`
       );
 
-=======
-    
-    // 检查是否是管理员
-    if (currentUser.role !== 'ADMIN') {
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
       return NextResponse.json(
         { error: 'Forbidden - Admin access required' },
         { status: 403 }
       );
     }
-<<<<<<< HEAD
 
     // 解析请求体
     const body = await request.json();
@@ -207,30 +159,16 @@ export async function POST(request: NextRequest) {
         '缺少必填字段'
       );
 
-=======
-    
-    // 解析请求体
-    const body = await request.json();
-    const { code, name, description, credit, semester } = body;
-    
-    // 验证必填字段
-    if (!code || !name || !description || !credit || !semester) {
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
       return NextResponse.json(
         { error: 'Bad Request - Missing required fields' },
         { status: 400 }
       );
     }
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     // 检查课程代码是否已存在
     const existingCourse = await prisma.course.findUnique({
       where: { code }
     });
-<<<<<<< HEAD
 
     if (existingCourse) {
       await logApiError(
@@ -239,20 +177,12 @@ export async function POST(request: NextRequest) {
         `课程代码 ${code} 已存在`
       );
 
-=======
-    
-    if (existingCourse) {
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
       return NextResponse.json(
         { error: 'Conflict - Course code already exists' },
         { status: 409 }
       );
     }
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     // 创建新课程
     const newCourse = await prisma.course.create({
       data: {
@@ -260,7 +190,6 @@ export async function POST(request: NextRequest) {
         name,
         description,
         credit: Number(credit),
-<<<<<<< HEAD
         semester,
         teachers: teacherIds && teacherIds.length > 0 ? {
           connect: teacherIds.map((id: string) => ({ id }))
@@ -286,19 +215,12 @@ export async function POST(request: NextRequest) {
       `创建了新课程 ${newCourse.name}(${newCourse.code}), 学分: ${newCourse.credit}, 学期: ${newCourse.semester}, 分配教师: ${teacherNames || '无'}`
     );
 
-=======
-        semester
-      }
-    });
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     return NextResponse.json(
       { message: 'Course created successfully', course: newCourse },
       { status: 201 }
     );
   } catch (error) {
     console.error('Error creating course:', error);
-<<<<<<< HEAD
 
     // 记录错误日志
     const currentUser = getCurrentUser(request);
@@ -310,8 +232,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-=======
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -324,11 +244,7 @@ export async function PUT(request: NextRequest) {
   try {
     // 获取当前用户
     const currentUser = getCurrentUser(request);
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     // 检查是否登录
     if (!currentUser) {
       return NextResponse.json(
@@ -336,11 +252,7 @@ export async function PUT(request: NextRequest) {
         { status: 401 }
       );
     }
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     // 检查是否是管理员
     if (currentUser.role !== 'ADMIN') {
       return NextResponse.json(
@@ -348,19 +260,11 @@ export async function PUT(request: NextRequest) {
         { status: 403 }
       );
     }
-<<<<<<< HEAD
 
     // 解析请求体
     const body = await request.json();
     const { id, code, name, description, credit, semester, teacherIds } = body;
 
-=======
-    
-    // 解析请求体
-    const body = await request.json();
-    const { id, code, name, description, credit, semester } = body;
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     // 验证必填字段
     if (!id || !code || !name || !description || !credit || !semester) {
       return NextResponse.json(
@@ -368,7 +272,6 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
-<<<<<<< HEAD
 
     // 查找课程
     const course = await prisma.course.findUnique({
@@ -378,41 +281,24 @@ export async function PUT(request: NextRequest) {
       }
     });
 
-=======
-    
-    // 查找课程
-    const course = await prisma.course.findUnique({
-      where: { id }
-    });
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     if (!course) {
       return NextResponse.json(
         { error: 'Not Found - Course not found' },
         { status: 404 }
       );
     }
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     // 检查课程代码是否已被其他课程使用
     const existingCourse = await prisma.course.findUnique({
       where: { code }
     });
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     if (existingCourse && existingCourse.id !== id) {
       return NextResponse.json(
         { error: 'Conflict - Course code already exists' },
         { status: 409 }
       );
     }
-<<<<<<< HEAD
 
     // 获取原教师列表
     const oldTeachers = await prisma.user.findMany({
@@ -444,9 +330,6 @@ export async function PUT(request: NextRequest) {
       : [];
     const newTeacherNames = newTeachers.map(t => t.name).join(', ');
 
-=======
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     // 更新课程
     const updatedCourse = await prisma.course.update({
       where: { id },
@@ -455,7 +338,6 @@ export async function PUT(request: NextRequest) {
         name,
         description,
         credit: Number(credit),
-<<<<<<< HEAD
         semester,
         teachers: {
           // 重置关联并连接新的教师
@@ -507,19 +389,12 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-=======
-        semester
-      }
-    });
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     return NextResponse.json(
       { message: 'Course updated successfully', course: updatedCourse },
       { status: 200 }
     );
   } catch (error) {
     console.error('Error updating course:', error);
-<<<<<<< HEAD
 
     // 记录错误日志
     const currentUser = getCurrentUser(request);
@@ -531,8 +406,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-=======
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -546,28 +419,17 @@ export async function DELETE(request: NextRequest) {
     // 获取课程ID
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     if (!id) {
       return NextResponse.json(
         { error: 'Bad Request - Missing course ID' },
         { status: 400 }
       );
     }
-<<<<<<< HEAD
 
     // 获取当前用户
     const currentUser = getCurrentUser(request);
 
-=======
-    
-    // 获取当前用户
-    const currentUser = getCurrentUser(request);
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     // 检查是否登录
     if (!currentUser) {
       return NextResponse.json(
@@ -575,11 +437,7 @@ export async function DELETE(request: NextRequest) {
         { status: 401 }
       );
     }
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     // 检查是否是管理员
     if (currentUser.role !== 'ADMIN') {
       return NextResponse.json(
@@ -587,40 +445,24 @@ export async function DELETE(request: NextRequest) {
         { status: 403 }
       );
     }
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     // 查找课程
     const course = await prisma.course.findUnique({
       where: { id }
     });
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     if (!course) {
       return NextResponse.json(
         { error: 'Not Found - Course not found' },
         { status: 404 }
       );
     }
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     // 删除课程
     await prisma.course.delete({
       where: { id }
     });
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
     return NextResponse.json(
       { message: 'Course deleted successfully' },
       { status: 200 }
@@ -637,20 +479,12 @@ export async function DELETE(request: NextRequest) {
 // 处理OPTIONS请求（CORS预检请求）
 export async function OPTIONS(request: NextRequest) {
   const response = NextResponse.json({}, { status: 200 });
-<<<<<<< HEAD
 
-=======
-  
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
   // 设置CORS头部
   response.headers.set('Access-Control-Allow-Origin', '*');
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   response.headers.set('Access-Control-Max-Age', '86400'); // 预检请求缓存24小时
-<<<<<<< HEAD
 
-=======
-  
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
   return response;
 } 

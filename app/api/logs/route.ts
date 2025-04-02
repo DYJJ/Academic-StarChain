@@ -53,19 +53,15 @@ export async function GET(request: NextRequest) {
 
         const userId = searchParams.get('userId');
         const action = searchParams.get('action');
-<<<<<<< HEAD
         const startDate = searchParams.get('startDate');
         const endDate = searchParams.get('endDate');
         const details = searchParams.get('details');
         const ipAddress = searchParams.get('ipAddress');
-=======
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
 
         // 构建查询条件
         const where: any = {};
         if (userId) where.userId = userId;
         if (action) where.action = action;
-<<<<<<< HEAD
         if (ipAddress) where.ipAddress = { contains: ipAddress };
 
         // 按日期范围筛选
@@ -91,8 +87,6 @@ export async function GET(request: NextRequest) {
                 contains: details
             };
         }
-=======
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
 
         // 查询日志总数
         const total = await prisma.systemLog.count({ where });
@@ -190,7 +184,6 @@ export async function POST(request: NextRequest) {
             { status: 500 }
         );
     }
-<<<<<<< HEAD
 }
 
 // 获取单个日志详情
@@ -261,6 +254,4 @@ export async function PUT(request: NextRequest) {
             { status: 500 }
         );
     }
-=======
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
 } 

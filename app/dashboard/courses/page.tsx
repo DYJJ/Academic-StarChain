@@ -36,10 +36,7 @@ type Course = {
   semester: string;
   createdAt: string;
   updatedAt?: string;
-<<<<<<< HEAD
   teachers: any[];
-=======
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
 };
 
 export default function CoursesManagement() {
@@ -247,7 +244,6 @@ export default function CoursesManagement() {
       ),
     },
     {
-<<<<<<< HEAD
       title: '教师',
       dataIndex: 'teachers',
       key: 'teachers',
@@ -266,8 +262,6 @@ export default function CoursesManagement() {
       ),
     },
     {
-=======
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
       title: '学分',
       dataIndex: 'credit',
       key: 'credit',

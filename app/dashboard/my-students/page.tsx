@@ -7,7 +7,7 @@ import {
   message, Input, Table, Tag, Tooltip, Avatar, Tabs, Select, Badge,
   Divider, Progress, Dropdown, Menu, Modal, Form, Radio
 } from 'antd';
-import { 
+import {
   UserOutlined, BookOutlined, SearchOutlined, FileExcelOutlined,
   BarChartOutlined, FilterOutlined, PlusOutlined, EditOutlined,
   MailOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined,
@@ -61,7 +61,7 @@ export default function MyStudents() {
   useEffect(() => {
     fetchStudents();
     fetchCourses();
-  
+
     // 记录访问学生管理页面
     logAction(LogAction.STUDENT_MANAGEMENT, '访问我的学生管理页面');
   }, []);
@@ -70,7 +70,7 @@ export default function MyStudents() {
     try {
       setLoading(true);
       const response = await fetch('/api/students/teacher');
-      
+
       if (!response.ok) {
         if (response.status === 401) {
           router.push('/login');
@@ -203,12 +203,12 @@ export default function MyStudents() {
     setStudentDetailVisible(true);
     logAction(LogAction.STUDENT_MANAGEMENT, `查看学生详情: ${student.name}(${student.studentId})`);
   };
-      
+
   const exportStudentList = () => {
     message.success('学生名单已导出');
     logAction(LogAction.STUDENT_MANAGEMENT, '导出学生名单');
   };
-      
+
   // 获取学生状态标签
   const getStatusTag = (status?: string) => {
     if (status === 'active') {
@@ -241,7 +241,7 @@ export default function MyStudents() {
       key: 'name',
       render: (_: string, record: Student) => (
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <Avatar 
+          <Avatar
             src={record.avatar}
             icon={!record.avatar && <UserOutlined />}
             style={{ marginRight: 12 }}
@@ -313,9 +313,9 @@ export default function MyStudents() {
       render: (_: string, record: Student) => (
         <div>
           <Tooltip title="查看详情">
-            <Button 
+            <Button
               type="link"
-              icon={<EyeOutlined />} 
+              icon={<EyeOutlined />}
               onClick={() => showStudentDetail(record)}
             />
           </Tooltip>
@@ -365,8 +365,8 @@ export default function MyStudents() {
 
       <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
         {/* 页面标题区域 */}
-        <div 
-          style={{ 
+        <div
+          style={{
             padding: '30px 24px',
             borderRadius: '8px',
             marginBottom: '24px',
@@ -376,7 +376,7 @@ export default function MyStudents() {
             overflow: 'hidden'
           }}
         >
-          <div 
+          <div
             style={{
               position: 'absolute',
               top: 0,
@@ -398,17 +398,17 @@ export default function MyStudents() {
             </Paragraph>
           </div>
         </div>
-        
+
         {/* 统计卡片区域 */}
         <Row gutter={[24, 24]} style={{ marginBottom: '24px' }}>
           <Col xs={24} sm={12} md={8} lg={6}>
             <Card bordered={false} className="stat-card">
-                <Statistic 
+              <Statistic
                 title="学生总数"
-                  value={students.length}
+                value={students.length}
                 prefix={<TeamOutlined style={{ color: '#8e44ad' }} />}
                 suffix="名学生"
-                />
+              />
               <div className="stat-footer">
                 <div className="stat-trend">
                   最近7天新增 {Math.floor(students.length * 0.2)} 名
@@ -428,27 +428,27 @@ export default function MyStudents() {
                 <div className="stat-trend">
                   活跃率 {Math.round((students.filter(s => s.status === 'active').length / (students.length || 1)) * 100)}%
                 </div>
-                </div>
-              </Card>
-            </Col>
+              </div>
+            </Card>
+          </Col>
           <Col xs={24} sm={12} md={8} lg={6}>
             <Card bordered={false} className="stat-card">
-                <Statistic 
+              <Statistic
                 title="平均进度"
                 value={Math.round(students.reduce((sum, s) => sum + (s.progress || 0), 0) / (students.length || 1))}
                 prefix={<BarChartOutlined style={{ color: '#e67e22' }} />}
                 suffix="%"
-                />
+              />
               <div className="stat-footer">
                 <div className="stat-trend">
                   整体学习进度良好
                 </div>
-                </div>
-              </Card>
-            </Col>
+              </div>
+            </Card>
+          </Col>
           <Col xs={24} sm={12} md={8} lg={6}>
             <Card bordered={false} className="stat-card">
-                <Statistic 
+              <Statistic
                 title="授课课程"
                 value={courses.length}
                 prefix={<BookOutlined style={{ color: '#2980b9' }} />}
@@ -458,11 +458,11 @@ export default function MyStudents() {
                 <div className="stat-trend">
                   平均每课程 {Math.round(students.length / (courses.length || 1))} 名学生
                 </div>
-                </div>
-              </Card>
-            </Col>
-          </Row>
-          
+              </div>
+            </Card>
+          </Col>
+        </Row>
+
         {/* 工具栏和筛选区域 */}
         <Card bordered={false} style={{ marginBottom: '24px' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -521,29 +521,29 @@ export default function MyStudents() {
               </Radio.Group>
             </div>
           </div>
-          
+
           <div>
             <Text>
               共找到 <Text strong>{filteredStudents.length}</Text> 名学生
               {searchText && <span>，搜索 "{searchText}"</span>}
               {selectedCourse && <span>，课程筛选 "{courses.find(c => c.id === selectedCourse)?.name || ''}"</span>}
-              </Text>
-        </div>
-      </Card>
-      
+            </Text>
+          </div>
+        </Card>
+
         {/* 学生列表内容区域 */}
         {filteredStudents.length > 0 ? (
           viewMode === 'list' ? (
             // 表格视图
             <Card bordered={false}>
-          <Table 
-            dataSource={filteredStudents}
-            columns={columns}
-            rowKey="id"
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showQuickJumper: true,
+              <Table
+                dataSource={filteredStudents}
+                columns={columns}
+                rowKey="id"
+                pagination={{
+                  pageSize: 10,
+                  showSizeChanger: true,
+                  showQuickJumper: true,
                 }}
               />
             </Card>
@@ -586,7 +586,7 @@ export default function MyStudents() {
                       {getStatusTag(student.status)}
                     </div>
                     <Divider style={{ margin: '12px 0' }} />
-              <div>
+                    <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <Text type="secondary">邮箱:</Text>
                         <Text copyable={{ text: student.email }}>{student.email}</Text>
@@ -602,7 +602,7 @@ export default function MyStudents() {
                       <div style={{ marginTop: '12px' }}>
                         <Text type="secondary" style={{ display: 'block', marginBottom: '4px' }}>
                           学习进度:
-                </Text>
+                        </Text>
                         <Progress
                           percent={student.progress || 0}
                           status={
@@ -621,10 +621,10 @@ export default function MyStudents() {
           // 空状态
           <Card bordered={false} style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
             {emptyContent}
-      </Card>
+          </Card>
         )}
       </div>
-      
+
       {/* 学生详情模态窗口 */}
       <Modal
         title={
@@ -641,24 +641,24 @@ export default function MyStudents() {
         {selectedStudent && (
           <div>
             <div style={{ display: 'flex', marginBottom: '24px' }}>
-                    <Avatar 
+              <Avatar
                 src={selectedStudent.avatar}
                 icon={!selectedStudent.avatar && <UserOutlined />}
-                      size={64}
+                size={64}
                 style={{ marginRight: '16px' }}
-                    />
-                    <div>
+              />
+              <div>
                 <Title level={4} style={{ marginBottom: '4px' }}>{selectedStudent.name}</Title>
                 <div>
                   <Text type="secondary">{selectedStudent.studentId}</Text>
                   {getStatusTag(selectedStudent.status)}
-                      </div>
+                </div>
                 <Text copyable>{selectedStudent.email}</Text>
-                    </div>
-                  </div>
-                  
-                  <Divider />
-                  
+              </div>
+            </div>
+
+            <Divider />
+
             <Tabs defaultActiveKey="1">
               <TabPane tab="基本信息" key="1">
                 <Descriptions bordered column={2}>
@@ -681,9 +681,9 @@ export default function MyStudents() {
                         (selectedStudent.progress || 0) < 70 ? 'normal' : 'success'
                     }
                   />
-              </div>
-            </TabPane>
-            
+                </div>
+              </TabPane>
+
               <TabPane tab="已修课程" key="2">
                 {selectedStudent.courses && selectedStudent.courses.length > 0 ? (
                   <List
@@ -700,7 +700,7 @@ export default function MyStudents() {
                       </List.Item>
                     )}
                   />
-                              ) : (
+                ) : (
                   <Empty description="该学生未修任何课程" />
                 )}
               </TabPane>
@@ -716,7 +716,7 @@ export default function MyStudents() {
                         valueStyle={{ color: '#3f8600' }}
                         prefix={<CheckCircleOutlined />}
                         suffix="分"
-                                          />
+                      />
                     </Col>
                     <Col span={12}>
                       <Statistic
@@ -725,7 +725,7 @@ export default function MyStudents() {
                         valueStyle={{ color: '#cf1322' }}
                         prefix={<CloseCircleOutlined />}
                         suffix="门"
-                                          />
+                      />
                     </Col>
                   </Row>
                 </Card>
@@ -733,8 +733,8 @@ export default function MyStudents() {
                 <div style={{ marginTop: '16px' }}>
                   <Empty description="更多详细成绩数据正在完善中" />
                 </div>
-            </TabPane>
-          </Tabs>
+              </TabPane>
+            </Tabs>
           </div>
         )}
       </Modal>

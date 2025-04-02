@@ -39,7 +39,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-<<<<<<< HEAD
     // 获取查询参数
     const url = new URL(request.url);
     const roleParam = url.searchParams.get('role');
@@ -62,10 +61,6 @@ export async function GET(request: NextRequest) {
     }
     // 其他情况需要管理员权限
     else if (currentUser.role !== 'ADMIN') {
-=======
-    // 检查是否是管理员
-    if (currentUser.role !== 'ADMIN') {
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
       return NextResponse.json(
         { error: 'Forbidden - Admin access required' },
         { status: 403 }
@@ -76,10 +71,7 @@ export async function GET(request: NextRequest) {
     console.log('开始查询用户数据');
     try {
       const users = await prisma.user.findMany({
-<<<<<<< HEAD
         where,
-=======
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
         select: {
           id: true,
           name: true,
@@ -89,11 +81,7 @@ export async function GET(request: NextRequest) {
           updatedAt: true
         },
         orderBy: {
-<<<<<<< HEAD
           name: 'asc'
-=======
-          createdAt: 'desc'
->>>>>>> 49b5edb54a73de8a79d0d5bdb403fee82a99512f
         }
       });
 
