@@ -53,11 +53,40 @@ export async function GET(request: NextRequest) {
 
         const userId = searchParams.get('userId');
         const action = searchParams.get('action');
+        const startDate = searchParams.get('startDate');
+        const endDate = searchParams.get('endDate');
+        const details = searchParams.get('details');
+        const ipAddress = searchParams.get('ipAddress');
 
         // 构建查询条件
         const where: any = {};
         if (userId) where.userId = userId;
         if (action) where.action = action;
+        if (ipAddress) where.ipAddress = { contains: ipAddress };
+
+        // 按日期范围筛选
+        if (startDate || endDate) {
+            where.createdAt = {};
+
+            if (startDate) {
+                const start = new Date(startDate);
+                start.setHours(0, 0, 0, 0);
+                where.createdAt.gte = start;
+            }
+
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                where.createdAt.lte = end;
+            }
+        }
+
+        // 按详情搜索
+        if (details) {
+            where.details = {
+                contains: details
+            };
+        }
 
         // 查询日志总数
         const total = await prisma.systemLog.count({ where });
@@ -152,6 +181,76 @@ export async function POST(request: NextRequest) {
         console.error('记录系统日志失败:', error);
         return NextResponse.json(
             { error: '记录系统日志失败' },
+            { status: 500 }
+        );
+    }
+}
+
+// 获取单个日志详情
+export async function PUT(request: NextRequest) {
+    try {
+        const currentUser = getCurrentUser(request);
+
+        if (!currentUser) {
+            return NextResponse.json(
+                { error: '未登录' },
+                { status: 401 }
+            );
+        }
+
+        // 只允许管理员访问系统日志
+        if (currentUser.role !== 'ADMIN') {
+            return NextResponse.json(
+                { error: '只有管理员可以查看系统日志' },
+                { status: 403 }
+            );
+        }
+
+        const { id } = await request.json();
+
+        if (!id) {
+            return NextResponse.json(
+                { error: '缺少日志ID' },
+                { status: 400 }
+            );
+        }
+
+        // 查询日志详情
+        const log = await prisma.systemLog.findUnique({
+            where: { id },
+            include: {
+                user: {
+                    select: {
+                        name: true,
+                        email: true,
+                        role: true
+                    }
+                }
+            }
+        });
+
+        if (!log) {
+            return NextResponse.json(
+                { error: '日志不存在' },
+                { status: 404 }
+            );
+        }
+
+        // 记录查看日志详情的操作
+        await prisma.systemLog.create({
+            data: {
+                userId: currentUser.id,
+                action: '查看日志详情',
+                details: `查看日志ID: ${id}`,
+                ipAddress: request.headers.get('x-forwarded-for') || '未知IP'
+            }
+        });
+
+        return NextResponse.json({ log });
+    } catch (error) {
+        console.error('获取日志详情失败:', error);
+        return NextResponse.json(
+            { error: '获取日志详情失败' },
             { status: 500 }
         );
     }

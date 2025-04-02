@@ -1,12 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import { Modal, Form, Input, InputNumber, Select, Button, Typography, Space, Avatar, Tag, Rate, Tooltip } from 'antd';
-import { BookOutlined, NumberOutlined, CalendarOutlined, FileTextOutlined, ReadOutlined, RocketOutlined, BulbOutlined } from '@ant-design/icons';
+import { useState, useEffect } from 'react';
+import { Modal, Form, Input, InputNumber, Select, Button, Typography, Space, Avatar, Tag, Rate, Tooltip, Spin } from 'antd';
+import { BookOutlined, NumberOutlined, CalendarOutlined, FileTextOutlined, ReadOutlined, RocketOutlined, BulbOutlined, TeamOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
 const { TextArea } = Input;
 const { Title, Text } = Typography;
+
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: 'ADMIN' | 'TEACHER' | 'STUDENT';
+};
 
 type Course = {
   code: string;
@@ -15,6 +22,7 @@ type Course = {
   credit: number;
   semester: string;
   difficulty?: number;
+  teacherIds?: string[];
 };
 
 type AddCourseModalProps = {
@@ -27,6 +35,8 @@ export default function AddCourseModal({ isOpen, onClose, onAddCourse }: AddCour
   const [form] = Form.useForm();
   const [difficulty, setDifficulty] = useState(3);
   const [preview, setPreview] = useState(false);
+  const [teachers, setTeachers] = useState<User[]>([]);
+  const [loadingTeachers, setLoadingTeachers] = useState(false);
 
   // 表单标题样式
   const formItemLabelStyle = {
@@ -34,6 +44,29 @@ export default function AddCourseModal({ isOpen, onClose, onAddCourse }: AddCour
     display: 'flex',
     alignItems: 'center',
     gap: '8px'
+  };
+
+  // 获取所有教师
+  useEffect(() => {
+    if (isOpen) {
+      fetchTeachers();
+    }
+  }, [isOpen]);
+
+  const fetchTeachers = async () => {
+    try {
+      setLoadingTeachers(true);
+      const response = await fetch('/api/users?role=TEACHER');
+      if (!response.ok) {
+        throw new Error('获取教师列表失败');
+      }
+      const data = await response.json();
+      setTeachers(data.users || []);
+    } catch (error) {
+      console.error('获取教师错误:', error);
+    } finally {
+      setLoadingTeachers(false);
+    }
   };
 
   // 重置表单
@@ -162,7 +195,8 @@ export default function AddCourseModal({ isOpen, onClose, onAddCourse }: AddCour
           name: '',
           description: '',
           credit: 3,
-          semester: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}-1`
+          semester: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}-1`,
+          teacherIds: []
         }}
         onFinish={handleSubmit}
       >
@@ -220,6 +254,26 @@ export default function AddCourseModal({ isOpen, onClose, onAddCourse }: AddCour
             {generateSemesters().map(semester => (
               <Option key={semester.value} value={semester.value}>
                 {semester.label}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          name="teacherIds"
+          label={<div style={formItemLabelStyle}><TeamOutlined /> 课程教师</div>}
+          tooltip="选择负责教授此课程的教师"
+        >
+          <Select
+            mode="multiple"
+            placeholder="选择教师"
+            loading={loadingTeachers}
+            notFoundContent={loadingTeachers ? <Spin size="small" /> : "没有找到教师"}
+            optionFilterProp="children"
+          >
+            {teachers.map(teacher => (
+              <Option key={teacher.id} value={teacher.id}>
+                {teacher.name} ({teacher.email})
               </Option>
             ))}
           </Select>

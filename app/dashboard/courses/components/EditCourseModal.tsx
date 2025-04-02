@@ -1,13 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Modal, Form, Input, InputNumber, Select, Button, Typography, Space, Avatar, Tag, Tooltip, Tabs, Alert, Badge, Divider } from 'antd';
-import { BookOutlined, EditOutlined, SaveOutlined, ReadOutlined, FileTextOutlined, NumberOutlined, CalendarOutlined, RocketOutlined, HistoryOutlined, CheckOutlined, CodeOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, InputNumber, Select, Button, Typography, Space, Avatar, Tag, Tooltip, Tabs, Alert, Badge, Divider, Spin } from 'antd';
+import { BookOutlined, EditOutlined, SaveOutlined, ReadOutlined, FileTextOutlined, NumberOutlined, CalendarOutlined, RocketOutlined, HistoryOutlined, CheckOutlined, CodeOutlined, TeamOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
 const { TextArea } = Input;
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
+
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: 'ADMIN' | 'TEACHER' | 'STUDENT';
+};
 
 type Course = {
   id: string;
@@ -17,6 +24,8 @@ type Course = {
   credit: number;
   semester: string;
   difficulty?: number;
+  teachers?: User[];
+  teacherIds?: string[];
 };
 
 type EditCourseModalProps = {
@@ -32,6 +41,8 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
   const [hasChanges, setHasChanges] = useState(false);
   const [changeCount, setChangeCount] = useState(0);
   const [originalValues, setOriginalValues] = useState<Course>({ ...course });
+  const [teachers, setTeachers] = useState<User[]>([]);
+  const [loadingTeachers, setLoadingTeachers] = useState(false);
 
   // 表单标题样式
   const formItemLabelStyle = {
@@ -40,6 +51,50 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
     alignItems: 'center',
     gap: '8px'
   };
+
+  // 获取所有教师
+  useEffect(() => {
+    if (isOpen) {
+      fetchTeachers();
+    }
+  }, [isOpen]);
+
+  const fetchTeachers = async () => {
+    try {
+      setLoadingTeachers(true);
+      const response = await fetch('/api/users?role=TEACHER');
+      if (!response.ok) {
+        throw new Error('获取教师列表失败');
+      }
+      const data = await response.json();
+      setTeachers(data.users || []);
+    } catch (error) {
+      console.error('获取教师错误:', error);
+    } finally {
+      setLoadingTeachers(false);
+    }
+  };
+
+  // 获取课程的教师
+  useEffect(() => {
+    const fetchCourseTeachers = async () => {
+      try {
+        const response = await fetch(`/api/courses/${course.id}/teachers`);
+        if (!response.ok) {
+          throw new Error('获取课程教师失败');
+        }
+        const data = await response.json();
+        // 设置教师ID数组到表单
+        form.setFieldValue('teacherIds', data.teachers.map((t: User) => t.id));
+      } catch (error) {
+        console.error('获取课程教师错误:', error);
+      }
+    };
+
+    if (isOpen && course.id) {
+      fetchCourseTeachers();
+    }
+  }, [isOpen, course.id, form]);
 
   // 初始化表单
   useEffect(() => {
@@ -65,6 +120,11 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
     if (currentValues.credit !== originalValues.credit) changes.push('学分');
     if (currentValues.semester !== originalValues.semester) changes.push('学期');
 
+    // 检查教师变更
+    if (JSON.stringify(currentValues.teacherIds || []) !== JSON.stringify(originalValues.teacherIds || [])) {
+      changes.push('教师分配');
+    }
+
     setChangeCount(changes.length);
     setHasChanges(changes.length > 0);
   };
@@ -76,7 +136,8 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
       name: course.name,
       description: course.description,
       credit: course.credit,
-      semester: course.semester
+      semester: course.semester,
+      teacherIds: originalValues.teacherIds || []
     });
     setHasChanges(false);
     setChangeCount(0);
@@ -164,6 +225,45 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
             <Tag icon={<EditOutlined />} color="blue">
               新值: {currentValues.semester ? currentValues.semester.replace('-', '~').replace('-', ' 学期') : ''}
             </Tag>
+          )}
+        </Space>
+
+        <Divider orientation="left">课程教师</Divider>
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <div>
+            <Text strong>原分配教师：</Text>
+            <div style={{ marginTop: 8 }}>
+              {(originalValues.teacherIds || []).length > 0 ?
+                (originalValues.teacherIds || []).map(id => {
+                  const teacher = teachers.find(t => t.id === id);
+                  return teacher ? (
+                    <Tag key={id} color="default" style={{ marginBottom: 4 }}>
+                      {teacher.name} ({teacher.email})
+                    </Tag>
+                  ) : null;
+                }) :
+                <Tag color="default">未分配教师</Tag>
+              }
+            </div>
+          </div>
+
+          {JSON.stringify(currentValues.teacherIds || []) !== JSON.stringify(originalValues.teacherIds || []) && (
+            <div style={{ marginTop: 8 }}>
+              <Text strong type="success">新分配教师：</Text>
+              <div style={{ marginTop: 8 }}>
+                {(currentValues.teacherIds || []).length > 0 ?
+                  (currentValues.teacherIds || []).map(id => {
+                    const teacher = teachers.find(t => t.id === id);
+                    return teacher ? (
+                      <Tag key={id} color="blue" style={{ marginBottom: 4 }}>
+                        {teacher.name} ({teacher.email})
+                      </Tag>
+                    ) : null;
+                  }) :
+                  <Tag color="default">未分配教师</Tag>
+                }
+              </div>
+            </div>
           )}
         </Space>
 
@@ -322,6 +422,24 @@ export default function EditCourseModal({ course, isOpen, onClose, onEditCourse 
                     {generateSemesters().map(semester => (
                       <Option key={semester.value} value={semester.value}>
                         {semester.label}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+
+                <Form.Item
+                  name="teacherIds"
+                  label={<div style={formItemLabelStyle}><TeamOutlined /> 教师分配</div>}
+                  rules={[{ required: true, message: '请选择教师' }]}
+                >
+                  <Select
+                    mode="multiple"
+                    placeholder="请选择教师"
+                    style={{ width: '100%' }}
+                  >
+                    {teachers.map(teacher => (
+                      <Option key={teacher.id} value={teacher.id}>
+                        {teacher.name} ({teacher.email})
                       </Option>
                     ))}
                   </Select>

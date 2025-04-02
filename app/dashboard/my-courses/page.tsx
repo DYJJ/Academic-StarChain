@@ -1,19 +1,30 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Typography, Skeleton, Empty, message, Card, Button, Divider, Row, Col, Tabs, 
-         Progress, Statistic, Badge, Spin, Dropdown, Menu, Tooltip } from 'antd';
-import { BookOutlined, ReloadOutlined, BarChartOutlined, AppstoreOutlined, 
-         CrownOutlined, FileTextOutlined, TeamOutlined, TrophyOutlined,
-         FilterOutlined, SortAscendingOutlined, CalendarOutlined,
-         FireOutlined, RocketOutlined, ExperimentOutlined } from '@ant-design/icons';
-import Masonry, { ResponsiveMasonry } from 'react-responsive-masonry';
-import CourseCard, { CourseType } from '../../components/CourseCard';
+import { useRouter } from 'next/navigation';
+import {
+  Card, Row, Col, Button, Statistic, Typography, Empty, Spin,
+  message, Tabs, Avatar, List, Tag, Tooltip, Modal, Progress, Divider
+} from 'antd';
+import {
+  TeamOutlined, EditOutlined, BarChartOutlined,
+  BookOutlined, CalendarOutlined, TrophyOutlined,
+  RocketOutlined, UserOutlined, SettingOutlined,
+  PlusOutlined, FireOutlined, LineChartOutlined
+} from '@ant-design/icons';
+import Navbar from '../../components/Navbar';
+import { LogAction, logAction } from '../../utils/logger';
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
 
-// 课程类型定义
+interface Teacher {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 interface Course {
   id: string;
   code: string;
@@ -21,423 +32,527 @@ interface Course {
   description: string;
   credit: number;
   semester: string;
+  teachers: Teacher[];
 }
 
-// 学期选项
-const SEMESTER_OPTIONS = ['全部', '2023-2024-1', '2023-2024-2', '2024-2025-1', '2024-2025-2'];
+interface Student {
+  id: string;
+  name: string;
+  email: string;
+  studentId: string;
+  avatar?: string;
+}
 
-// 排序选项
-const SORT_OPTIONS = [
-  { key: 'name', label: '按名称排序' },
-  { key: 'credit', label: '按学分排序' },
-  { key: 'semester', label: '按学期排序' },
-];
+interface GradeData {
+  range: string;
+  count: number;
+  color: string;
+}
 
-export default function TeacherCoursesPage() {
-  const [courses, setCourses] = useState<CourseType[]>([]);
-  const [filteredCourses, setFilteredCourses] = useState<CourseType[]>([]);
+export default function MyCourses() {
+  const router = useRouter();
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSemester, setSelectedSemester] = useState('全部');
-  const [sortOrder, setSortOrder] = useState<string>('name');
-  const [activeTab, setActiveTab] = useState('all');
-  const [refreshing, setRefreshing] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [courseStudents, setCourseStudents] = useState<Student[]>([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [studentModalVisible, setStudentModalVisible] = useState(false);
+  const [gradeModalVisible, setGradeModalVisible] = useState(false);
 
-  // 获取教师的课程
-  const fetchTeacherCourses = async () => {
+  // 假数据 - 成绩分布
+  const gradeData: GradeData[] = [
+    { range: '90-100', count: 5, color: '#52c41a' },
+    { range: '80-89', count: 12, color: '#1890ff' },
+    { range: '70-79', count: 8, color: '#faad14' },
+    { range: '60-69', count: 3, color: '#fa8c16' },
+    { range: '< 60', count: 2, color: '#f5222d' }
+  ];
+
+  const totalStudents = gradeData.reduce((sum, item) => sum + item.count, 0);
+
+  useEffect(() => {
+    fetchCourses();
+
+    // 记录访问我的课程页面
+    logAction(LogAction.COURSE_MANAGEMENT, '访问我的教学课程页面');
+  }, []);
+
+  const fetchCourses = async () => {
     try {
       setLoading(true);
-      setRefreshing(true);
       const response = await fetch('/api/courses/teacher');
-      
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '获取课程失败');
+        if (response.status === 401) {
+          router.push('/login');
+          return;
+        }
+        throw new Error('获取课程失败');
       }
 
       const data = await response.json();
       setCourses(data.courses);
-      setFilteredCourses(data.courses);
-      
-      // 成功获取数据后显示消息
-      message.success('课程数据刷新成功');
-    } catch (error) {
-      console.error('获取教师课程错误:', error);
-      message.error('获取课程信息失败，请稍后再试');
+    } catch (err: any) {
+      message.error(err.message || '加载数据失败');
     } finally {
       setLoading(false);
-      // 设置延时，让刷新图标旋转一会儿
-      setTimeout(() => {
-        setRefreshing(false);
-      }, 500);
     }
   };
 
-  // 排序课程
-  const sortCourses = (coursesToSort: CourseType[]) => {
-    return [...coursesToSort].sort((a, b) => {
-      if (sortOrder === 'name') {
-        return a.name.localeCompare(b.name);
-      } else if (sortOrder === 'credit') {
-        return b.credit - a.credit;
-      } else if (sortOrder === 'semester') {
-        return b.semester.localeCompare(a.semester);
+  const fetchCourseStudents = async (courseId: string) => {
+    try {
+      setStudentsLoading(true);
+      const response = await fetch(`/api/courses/${courseId}/students`);
+
+      if (!response.ok) {
+        throw new Error('获取学生列表失败');
       }
-      return 0;
-    });
+
+      const data = await response.json();
+      setCourseStudents(data.students || []);
+    } catch (err: any) {
+      message.error(err.message || '获取学生列表失败');
+      setCourseStudents([]);
+    } finally {
+      setStudentsLoading(false);
+    }
   };
 
-  // 过滤和排序课程
-  useEffect(() => {
-    let result = [...courses];
-    
-    // 学期筛选
-    if (selectedSemester !== '全部') {
-      result = result.filter(course => course.semester === selectedSemester);
-    }
-    
-    // 标签页筛选
-    if (activeTab === 'current') {
-      result = result.filter(course => course.semester.includes('2023-2024'));
-    } else if (activeTab === 'upcoming') {
-      result = result.filter(course => course.semester.includes('2024-2025'));
-    }
-    
-    // 排序
-    result = sortCourses(result);
-    
-    setFilteredCourses(result);
-  }, [selectedSemester, courses, sortOrder, activeTab]);
-
-  useEffect(() => {
-    fetchTeacherCourses();
-  }, []);
-
-  // 计算当前学期课程数
-  const currentSemesterCourses = courses.filter(c => c.semester.includes('2023-2024')).length;
-  
-  // 计算总学分
-  const totalCredits = courses.reduce((sum, course) => sum + course.credit, 0);
-  
-  // 课程完成率（模拟数据）
-  const completionRate = Math.min(Math.round(Math.random() * 100), 100);
-
-  // 切换排序顺序
-  const handleSortChange = (key: string) => {
-    setSortOrder(key);
+  const showStudentModal = (course: Course) => {
+    setSelectedCourse(course);
+    fetchCourseStudents(course.id);
+    setStudentModalVisible(true);
+    logAction(LogAction.COURSE_MANAGEMENT, `查看课程"${course.name}"(${course.code})的学生列表`);
   };
 
-  // 排序菜单
-  const sortMenu = (
-    <Menu 
-      selectedKeys={[sortOrder]}
-      onClick={({ key }) => handleSortChange(key)}
-      items={SORT_OPTIONS.map(option => ({
-        key: option.key,
-        label: option.label,
-      }))}
-    />
-  );
+  const showGradeModal = (course: Course) => {
+    setSelectedCourse(course);
+    setGradeModalVisible(true);
+    logAction(LogAction.COURSE_MANAGEMENT, `查看课程"${course.name}"(${course.code})的成绩分析`);
+  };
+
+  const editCourse = (course: Course) => {
+    router.push(`/dashboard/courses/edit/${course.id}`);
+    logAction(LogAction.COURSE_MANAGEMENT, `编辑课程"${course.name}"(${course.code})`);
+  };
+
+  // 获取学期标签颜色
+  const getSemesterColor = (semester: string) => {
+    const colors = {
+      '2023-2024-1': 'magenta',
+      '2023-2024-2': 'red',
+      '2024-2025-1': 'volcano',
+      '2024-2025-2': 'orange',
+      '2025-2026-1': 'gold'
+    };
+    return colors[semester as keyof typeof colors] || 'blue';
+  };
+
+  // 获取教学进度（示例数据）
+  const getTeachingProgress = (course: Course) => {
+    // 实际应用中可以从后端获取真实数据
+    const semesterMap: { [key: string]: number } = {
+      '2023-2024-1': 100,
+      '2023-2024-2': 85,
+      '2024-2025-1': 62,
+      '2024-2025-2': 30,
+      '2025-2026-1': 15
+    };
+    return semesterMap[course.semester] || 0;
+  };
+
+  // 获取学期名称 (比如 2023-2024-1 => 2023-2024学年第一学期)
+  const getSemesterName = (semester: string) => {
+    const parts = semester.split('-');
+    if (parts.length === 3) {
+      return `${parts[0]}-${parts[1]}学年第${parts[2]}学期`;
+    }
+    return semester;
+  };
+
+  // 获取总体学生成绩（示例数据）
+  const getAverageGrade = () => {
+    return (
+      gradeData.reduce((sum, item) => {
+        const midpoint = item.range === '< 60' ? 55 : parseInt(item.range.split('-')[0]) + 5;
+        return sum + midpoint * item.count;
+      }, 0) / totalStudents
+    ).toFixed(1);
+  };
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+        <Navbar />
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 64px)' }}>
+          <Spin size="large" tip="加载课程中..." />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      {/* 顶部标题区域 */}
-      <Card 
-        className="mb-6 shadow-md overflow-hidden rounded-lg"
-        bodyStyle={{ padding: 0 }}
-      >
-        {/* 渐变背景标题 */}
-        <div 
-          className="py-8 px-6 text-white relative"
-          style={{ 
-            background: 'linear-gradient(135deg, #1677ff 0%, #06b6d4 100%)',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
-          }}
-        >
-          {/* 装饰性图形 */}
-          <div 
-            className="absolute top-0 right-0 bottom-0 left-0 opacity-10"
-            style={{
-              backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)',
-              backgroundSize: '20px 20px'
-            }}
-          />
-          
-          {/* 右上角装饰性图标 */}
-          <div className="absolute top-3 right-3 text-white opacity-20">
-            <RocketOutlined style={{ fontSize: 80 }} />
-          </div>
-          
-          <div className="relative z-10">
-            <div className="flex items-center mb-2">
-              <BookOutlined className="text-2xl mr-3" />
-              <Title level={2} style={{ color: 'white', margin: 0 }}>我的教学课程</Title>
-            </div>
-            <Paragraph style={{ color: 'rgba(255, 255, 255, 0.85)', maxWidth: '800px', marginBottom: 0 }}>
-              查看您正在教授的课程列表，学生可通过这些课程了解课程内容和提交成绩认证请求。
-            </Paragraph>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+      <Navbar />
+
+      <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+        {/* 页面标题 */}
+        <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <Title level={2} style={{ marginBottom: '8px' }}>我的教学课程</Title>
+            <Text type="secondary">显示您正在教授的课程列表，学生可通过这些课程了解课程内容并提交成绩认证请求</Text>
           </div>
         </div>
-        
-        {/* 统计数据卡片 */}
-        <div className="p-6">
-          <Row gutter={24}>
-            <Col xs={24} sm={24} md={16}>
-              <div className="mb-6">
-                <Row gutter={16}>
-                  <Col xs={24} sm={8}>
-                    <Card 
-                      className="hover:shadow-md transition-shadow cursor-pointer border border-gray-100 overflow-hidden"
-                      bodyStyle={{ padding: '24px', position: 'relative' }}
-                    >
-                      <div 
-                        className="absolute top-0 right-0 w-20 h-20 -mt-10 -mr-10 rounded-full bg-blue-500 opacity-10"
-                      />
-                      <div className="flex justify-between items-center mb-3">
-                        <Text className="text-gray-500 text-lg">总课程数</Text>
-                        <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
-                          <AppstoreOutlined className="text-blue-500 text-xl" />
-                        </div>
-                      </div>
-                      <Title level={2} style={{ margin: 0, color: '#1677ff' }}>
-                        {loading ? <Skeleton.Button active style={{ width: 60 }} /> : courses.length}
-                      </Title>
-                      <div className="mt-2">
-                        <Text type="secondary">
-                          {loading ? 
-                            <Skeleton.Button active style={{ width: 120 }} /> : 
-                            `总共教授 ${courses.length} 门课程`
-                          }
-                        </Text>
-                      </div>
-                    </Card>
-                  </Col>
-                  
-                  <Col xs={24} sm={8} className="mt-4 sm:mt-0">
-                    <Card 
-                      className="hover:shadow-md transition-shadow cursor-pointer border border-gray-100 overflow-hidden"
-                      bodyStyle={{ padding: '24px', position: 'relative' }}
-                    >
-                      <div 
-                        className="absolute top-0 right-0 w-20 h-20 -mt-10 -mr-10 rounded-full bg-green-500 opacity-10"
-                      />
-                      <div className="flex justify-between items-center mb-3">
-                        <Text className="text-gray-500 text-lg">本学期课程</Text>
-                        <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center">
-                          <BarChartOutlined className="text-green-500 text-xl" />
-                        </div>
-                      </div>
-                      <Title level={2} style={{ margin: 0, color: '#52c41a' }}>
-                        {loading ? <Skeleton.Button active style={{ width: 60 }} /> : currentSemesterCourses}
-                      </Title>
-                      <div className="mt-2">
-                        <Text type="secondary">
-                          {loading ? 
-                            <Skeleton.Button active style={{ width: 120 }} /> : 
-                            `2023-2024学年课程数量`
-                          }
-                        </Text>
-                      </div>
-                    </Card>
-                  </Col>
-                  
-                  <Col xs={24} sm={8} className="mt-4 sm:mt-0">
-                    <Card 
-                      className="hover:shadow-md transition-shadow cursor-pointer border border-gray-100 overflow-hidden"
-                      bodyStyle={{ padding: '24px', position: 'relative' }}
-                    >
-                      <div 
-                        className="absolute top-0 right-0 w-20 h-20 -mt-10 -mr-10 rounded-full bg-orange-500 opacity-10"
-                      />
-                      <div className="flex justify-between items-center mb-3">
-                        <Text className="text-gray-500 text-lg">总学分</Text>
-                        <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center">
-                          <CrownOutlined className="text-orange-500 text-xl" />
-                        </div>
-                      </div>
-                      <Title level={2} style={{ margin: 0, color: '#fa8c16' }}>
-                        {loading ? <Skeleton.Button active style={{ width: 60 }} /> : totalCredits}
-                      </Title>
-                      <div className="mt-2">
-                        <Text type="secondary">
-                          {loading ? 
-                            <Skeleton.Button active style={{ width: 120 }} /> : 
-                            `平均每门课 ${(totalCredits / (courses.length || 1)).toFixed(1)} 学分`
-                          }
-                        </Text>
-                      </div>
-                    </Card>
-                  </Col>
-                </Row>
+
+        {/* 课程统计卡片 */}
+        <Row gutter={[24, 24]} style={{ marginBottom: '24px' }}>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Card bordered={false} className="stat-card">
+              <Statistic
+                title="总课程数"
+                value={courses.length}
+                prefix={<BookOutlined style={{ color: '#1890ff' }} />}
+                suffix="门课程"
+              />
+              <div className="stat-footer">
+                <div className="stat-trend positive">
+                  <FireOutlined /> 教学进度良好
+                </div>
               </div>
-            </Col>
-            
-            <Col xs={24} sm={24} md={8} className="mb-6 md:mb-0">
-              <Card className="h-full border border-gray-100">
-                <Statistic 
-                  title={
-                    <div className="flex items-center mb-2">
-                      <FireOutlined className="text-orange-500 mr-2" />
-                      <span>教学进度</span>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Card bordered={false} className="stat-card">
+              <Statistic
+                title="总学分数"
+                value={courses.reduce((sum, course) => sum + course.credit, 0)}
+                prefix={<TrophyOutlined style={{ color: '#52c41a' }} />}
+                suffix="学分"
+              />
+              <div className="stat-footer">
+                <div className="stat-trend positive">
+                  <RocketOutlined /> 课程资源丰富
+                </div>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Card bordered={false} className="stat-card">
+              <Statistic
+                title="平均成绩"
+                value={getAverageGrade()}
+                prefix={<LineChartOutlined style={{ color: '#faad14' }} />}
+                suffix="分"
+              />
+              <div className="stat-footer">
+                <div className="stat-trend positive">
+                  <BarChartOutlined /> 整体表现良好
+                </div>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6}>
+            <Card bordered={false} className="stat-card">
+              <Statistic
+                title="学期进度"
+                value={62}
+                prefix={<CalendarOutlined style={{ color: '#eb2f96' }} />}
+                suffix="%"
+              />
+              <div className="stat-footer">
+                <div className="stat-trend positive">
+                  <FireOutlined /> 进度符合预期
+                </div>
+              </div>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* 课程列表 */}
+        {courses.length > 0 ? (
+          <Row gutter={[24, 24]}>
+            {courses.map(course => (
+              <Col xs={24} sm={24} md={12} xl={8} key={course.id}>
+                <Card
+                  hoverable
+                  className="course-card"
+                  cover={
+                    <div className="course-cover">
+                      <div className="course-code">{course.code}</div>
+                      <Tag color={getSemesterColor(course.semester)} className="semester-tag">
+                        {getSemesterName(course.semester)}
+                      </Tag>
                     </div>
                   }
-                  value={completionRate}
-                  suffix="%"
-                  valueStyle={{ color: completionRate > 70 ? '#52c41a' : completionRate > 40 ? '#fa8c16' : '#ff4d4f' }}
+                  actions={[
+                    <Tooltip title="查看学生" key="students">
+                      <Button
+                        type="text"
+                        icon={<TeamOutlined />}
+                        onClick={() => showStudentModal(course)}
+                      >
+                        学生
+                      </Button>
+                    </Tooltip>,
+                    <Tooltip title="编辑课程" key="edit">
+                      <Button
+                        type="text"
+                        icon={<EditOutlined />}
+                        onClick={() => editCourse(course)}
+                      >
+                        编辑
+                      </Button>
+                    </Tooltip>,
+                    <Tooltip title="成绩分析" key="grades">
+                      <Button
+                        type="text"
+                        icon={<BarChartOutlined />}
+                        onClick={() => showGradeModal(course)}
+                      >
+                        成绩
+                      </Button>
+                    </Tooltip>
+                  ]}
+                >
+                  <div className="course-content">
+                    <Title level={4} className="course-name">{course.name}</Title>
+                    <Paragraph ellipsis={{ rows: 2 }} className="course-description">
+                      {course.description}
+                    </Paragraph>
+
+                    <div className="course-meta">
+                      <div>
+                        <Text strong>学分: </Text>
+                        <Tag color="blue">{course.credit}</Tag>
+                      </div>
+                    </div>
+
+                    <Divider style={{ margin: '12px 0' }} />
+
+                    <div className="course-progress">
+                      <Text type="secondary" style={{ marginBottom: '8px', display: 'block' }}>
+                        教学进度
+                      </Text>
+                      <Progress
+                        percent={getTeachingProgress(course)}
+                        status="active"
+                        strokeColor={{
+                          '0%': '#108ee9',
+                          '100%': '#87d068',
+                        }}
+                      />
+                    </div>
+                  </div>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        ) : (
+          <Empty
+            description="暂无教学课程"
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        )}
+      </div>
+
+      {/* 学生列表模态窗口 */}
+      <Modal
+        title={`${selectedCourse?.name || ''} - 学生列表`}
+        open={studentModalVisible}
+        onCancel={() => setStudentModalVisible(false)}
+        footer={[
+          <Button key="back" onClick={() => setStudentModalVisible(false)}>
+            关闭
+          </Button>
+        ]}
+        width={700}
+      >
+        {studentsLoading ? (
+          <div style={{ textAlign: 'center', padding: '30px' }}>
+            <Spin tip="加载学生数据..." />
+          </div>
+        ) : (
+          <List
+            dataSource={courseStudents.length > 0 ? courseStudents : [
+              { id: '1', name: '张三', email: 'zhangsan@example.com', studentId: '2023001', avatar: 'https://xsgames.co/randomusers/avatar.php?g=pixel&key=1' },
+              { id: '2', name: '李四', email: 'lisi@example.com', studentId: '2023002', avatar: 'https://xsgames.co/randomusers/avatar.php?g=pixel&key=2' },
+              { id: '3', name: '王五', email: 'wangwu@example.com', studentId: '2023003', avatar: 'https://xsgames.co/randomusers/avatar.php?g=pixel&key=3' }
+            ]}
+            renderItem={(student) => (
+              <List.Item>
+                <List.Item.Meta
+                  avatar={<Avatar src={student.avatar} icon={!student.avatar && <UserOutlined />} />}
+                  title={<Text strong>{student.name}</Text>}
+                  description={
+                    <div>
+                      <div>学号: {student.studentId}</div>
+                      <div>邮箱: {student.email}</div>
+                    </div>
+                  }
                 />
-                <Progress percent={completionRate} status={completionRate < 100 ? "active" : "success"} className="mt-2" />
-                <div className="mt-3">
-                  <Badge status={completionRate > 70 ? "success" : "processing"} text={
-                    <Text type="secondary">本学期课程已完成 {completionRate}%</Text>
-                  } />
+                <div>
+                  <Button type="link" icon={<BarChartOutlined />}>
+                    查看成绩
+                  </Button>
                 </div>
+              </List.Item>
+            )}
+          />
+        )}
+      </Modal>
+
+      {/* 成绩分析模态窗口 */}
+      <Modal
+        title={`${selectedCourse?.name || ''} - 成绩分析`}
+        open={gradeModalVisible}
+        onCancel={() => setGradeModalVisible(false)}
+        footer={[
+          <Button key="back" onClick={() => setGradeModalVisible(false)}>
+            关闭
+          </Button>
+        ]}
+        width={700}
+      >
+        <div style={{ padding: '20px 0' }}>
+          <Row gutter={[16, 24]}>
+            <Col span={24}>
+              <Card title="成绩分布" bordered={false}>
+                <Row gutter={16}>
+                  {gradeData.map((item) => (
+                    <Col span={24} key={item.range}>
+                      <div style={{ marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <Text>{item.range}</Text>
+                          <Text>{item.count}人 ({Math.round(item.count / totalStudents * 100)}%)</Text>
+                        </div>
+                        <Progress
+                          percent={Math.round(item.count / totalStudents * 100)}
+                          strokeColor={item.color}
+                          showInfo={false}
+                        />
+                      </div>
+                    </Col>
+                  ))}
+                </Row>
+              </Card>
+            </Col>
+
+            <Col span={12}>
+              <Card bordered={false}>
+                <Statistic
+                  title="平均分"
+                  value={getAverageGrade()}
+                  precision={1}
+                  valueStyle={{ color: '#3f8600' }}
+                  prefix={<TrophyOutlined />}
+                  suffix="分"
+                />
+              </Card>
+            </Col>
+
+            <Col span={12}>
+              <Card bordered={false}>
+                <Statistic
+                  title="通过率"
+                  value={Math.round((totalStudents - gradeData.find(item => item.range === '< 60')?.count || 0) / totalStudents * 100)}
+                  precision={0}
+                  valueStyle={{ color: '#cf1322' }}
+                  prefix={<LineChartOutlined />}
+                  suffix="%"
+                />
               </Card>
             </Col>
           </Row>
-          
-          {/* 过滤和分类区域 */}
-          <div className="mt-6 border-t pt-6">
-            <div className="flex flex-wrap justify-between items-center mb-4">
-              <div className="flex items-center mb-3 md:mb-0">
-                <FilterOutlined className="text-blue-500 mr-2" />
-                <Text strong className="text-lg">课程筛选</Text>
-              </div>
-              
-              <div className="flex flex-wrap gap-2">
-                <Dropdown overlay={sortMenu} placement="bottomRight">
-                  <Button icon={<SortAscendingOutlined />}>
-                    {SORT_OPTIONS.find(option => option.key === sortOrder)?.label || '排序方式'}
-                  </Button>
-                </Dropdown>
-                
-                <Tooltip title="刷新课程数据">
-                  <Button 
-                    type="primary" 
-                    icon={<ReloadOutlined spin={refreshing} />} 
-                    onClick={fetchTeacherCourses}
-                    loading={loading}
-                  >
-                    刷新数据
-                  </Button>
-                </Tooltip>
-              </div>
-            </div>
-            
-            {/* 标签页分类 */}
-            <Tabs 
-              activeKey={activeTab}
-              onChange={setActiveTab}
-              className="mb-4"
-              tabBarStyle={{ marginBottom: 16 }}
-            >
-              <TabPane 
-                tab={
-                  <span>
-                    <AppstoreOutlined />
-                    全部课程
-                  </span>
-                } 
-                key="all"
-              />
-              <TabPane 
-                tab={
-                  <span>
-                    <CalendarOutlined />
-                    本学期课程
-                  </span>
-                } 
-                key="current"
-              />
-              <TabPane 
-                tab={
-                  <span>
-                    <RocketOutlined />
-                    未来课程
-                  </span>
-                } 
-                key="upcoming"
-              />
-            </Tabs>
-            
-            {/* 学期筛选按钮组 */}
-            <div className="flex flex-wrap gap-2 mb-2">
-              {SEMESTER_OPTIONS.map(semester => (
-                <Button 
-                  key={semester}
-                  type={selectedSemester === semester ? 'primary' : 'default'}
-                  onClick={() => setSelectedSemester(semester)}
-                  className="mb-2"
-                >
-                  {semester}
-                </Button>
-              ))}
-            </div>
-            
-            {/* 筛选结果统计 */}
-            <div className="mt-2 mb-2">
-              <Badge status="processing" color="#1677ff" />
-              <Text type="secondary" className="ml-2">
-                当前显示: {filteredCourses.length} 门课程
-                {selectedSemester !== '全部' && `, 学期: ${selectedSemester}`}
-              </Text>
-            </div>
-          </div>
         </div>
-      </Card>
+      </Modal>
 
-      {/* 课程列表 */}
-      {loading ? (
-        <div className="text-center py-10">
-          <Spin size="large" tip="加载课程数据中..." />
-        </div>
-      ) : filteredCourses.length > 0 ? (
-        // 显示课程 - 使用Masonry布局
-        <ResponsiveMasonry
-          columnsCountBreakPoints={{350: 1, 750: 2, 1200: 3, 1600: 4}}
-        >
-          <Masonry gutter="16px">
-            {filteredCourses.map((course) => (
-              <div key={course.id} className="mb-4 animate-fadeIn" style={{
-                animation: 'fadeIn 0.5s ease-in-out',
-              }}>
-                <CourseCard course={course} />
-              </div>
-            ))}
-          </Masonry>
-        </ResponsiveMasonry>
-      ) : (
-        // 没有课程
-        <Card className="text-center py-10 shadow-sm rounded-lg">
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              <div>
-                <Title level={4} className="mt-4 text-gray-500">
-                  {selectedSemester === '全部' ? "暂无教学课程" : `${selectedSemester}学期暂无教学课程`}
-                </Title>
-                <Text type="secondary" className="block mb-4">
-                  {selectedSemester === '全部' ? 
-                    "您当前没有任何教学课程，请联系管理员分配课程。" : 
-                    `您在${selectedSemester}学期没有教学课程，请尝试选择其他学期。`
-                  }
-                </Text>
-              </div>
-            }
-          >
-            <Button type="primary" onClick={fetchTeacherCourses} icon={<ReloadOutlined />}>
-              重新加载
-            </Button>
-          </Empty>
-        </Card>
-      )}
-      
-      {/* 全局样式 */}
       <style jsx global>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+        .course-card {
+          height: 100%;
+          transition: all 0.3s;
+          overflow: hidden;
         }
-        .animate-fadeIn {
-          animation: fadeIn 0.5s ease-in-out;
+        
+        .course-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .course-cover {
+          height: 120px;
+          background: linear-gradient(120deg, #1890ff, #52c41a);
+          color: white;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          position: relative;
+        }
+        
+        .course-code {
+          font-size: 24px;
+          font-weight: bold;
+          margin-bottom: 8px;
+        }
+        
+        .semester-tag {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+        }
+        
+        .course-content {
+          min-height: 180px;
+        }
+        
+        .course-name {
+          margin-bottom: 8px !important;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        
+        .course-description {
+          color: rgba(0, 0, 0, 0.45);
+          margin-bottom: 12px !important;
+        }
+        
+        .course-meta {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 8px;
+        }
+        
+        .stat-card {
+          height: 140px;
+          position: relative;
+          transition: all 0.3s;
+        }
+        
+        .stat-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .stat-footer {
+          position: absolute;
+          bottom: 24px;
+          left: 24px;
+          right: 24px;
+          display: flex;
+          justify-content: space-between;
+        }
+        
+        .stat-trend {
+          font-size: 12px;
+        }
+        
+        .stat-trend.positive {
+          color: #52c41a;
+        }
+        
+        .stat-trend.negative {
+          color: #f5222d;
         }
       `}</style>
     </div>

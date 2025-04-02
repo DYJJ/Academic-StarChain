@@ -36,6 +36,7 @@ type Course = {
   semester: string;
   createdAt: string;
   updatedAt?: string;
+  teachers: any[];
 };
 
 export default function CoursesManagement() {
@@ -239,6 +240,24 @@ export default function CoursesManagement() {
         <Space>
           <BookOutlined style={{ color: '#1890ff' }} />
           {text}
+        </Space>
+      ),
+    },
+    {
+      title: '教师',
+      dataIndex: 'teachers',
+      key: 'teachers',
+      render: (teachers: any[], record: Course) => (
+        <Space wrap>
+          {teachers && teachers.length > 0 ? (
+            teachers.map((teacher: any) => (
+              <Tag color="green" key={teacher.id}>
+                {teacher.name}
+              </Tag>
+            ))
+          ) : (
+            <Tag color="red">未分配</Tag>
+          )}
         </Space>
       ),
     },

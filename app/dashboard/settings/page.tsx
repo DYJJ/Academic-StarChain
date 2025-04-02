@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import { LogAction, logAction } from '../../utils/logger';
-import { Table, Button, Card, Select, DatePicker, Space, Typography, Input, message } from 'antd';
-import { DownloadOutlined, SearchOutlined, UndoOutlined } from '@ant-design/icons';
+import { Table, Button, Card, Select, DatePicker, Space, Typography, Input, message, Tooltip, Badge, Tag, Modal } from 'antd';
+import { DownloadOutlined, SearchOutlined, UndoOutlined, EyeOutlined, FileTextOutlined, InfoCircleOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import BackButton from '../../components/BackButton';
 import dayjs from 'dayjs';
+import LogDetailModal from './components/LogDetailModal';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -56,6 +57,10 @@ export default function Settings() {
         action: '',
         dateRange: null as null | [dayjs.Dayjs, dayjs.Dayjs]
     });
+    const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
+    const [detailModalVisible, setDetailModalVisible] = useState(false);
+    const [clearLogsLoading, setClearLogsLoading] = useState(false);
+    const { confirm } = Modal;
 
     // 操作类型选项
     const actionOptions = Object.values(LogAction);
@@ -179,9 +184,57 @@ export default function Settings() {
         message.success('日志导出成功');
     };
 
+    const showClearLogsConfirm = () => {
+        confirm({
+            title: '确定要清空所有日志吗？',
+            icon: <ExclamationCircleOutlined />,
+            content: '此操作将永久删除所有系统操作日志，且无法恢复。',
+            okText: '确定清空',
+            okType: 'danger',
+            cancelText: '取消',
+            onOk() {
+                clearAllLogs();
+            }
+        });
+    };
+
+    const clearAllLogs = async () => {
+        try {
+            setClearLogsLoading(true);
+            const response = await fetch('/api/logs/clear', {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    router.push('/login');
+                    return;
+                }
+                const errorData = await response.json();
+                throw new Error(errorData.error || '清空日志失败');
+            }
+
+            const data = await response.json();
+            message.success(`已清空系统日志，共删除 ${data.deletedCount} 条记录`);
+            // 刷新日志列表
+            fetchLogs();
+        } catch (err: any) {
+            message.error(err.message || '清空日志失败');
+        } finally {
+            setClearLogsLoading(false);
+        }
+    };
+
     const getRoleName = (role: string) => {
         return role === 'ADMIN' ? '管理员' :
             role === 'TEACHER' ? '教师' : '学生';
+    };
+
+    const showLogDetail = (log: LogEntry) => {
+        setSelectedLog(log);
+        setDetailModalVisible(true);
+        // 记录查看日志详情操作
+        logAction(LogAction.SYSTEM_SETTING, `查看日志详情: ${log.id}`);
     };
 
     // 表格列配置
@@ -207,23 +260,58 @@ export default function Settings() {
             title: '角色',
             dataIndex: ['user', 'role'],
             key: 'role',
-            render: (role: string) => getRoleName(role)
+            render: (role: string) => (
+                <Tag color={role === 'ADMIN' ? 'red' : role === 'TEACHER' ? 'green' : 'default'}>
+                    {getRoleName(role)}
+                </Tag>
+            )
         },
         {
             title: '操作类型',
             dataIndex: 'action',
             key: 'action',
+            render: (text: string) => (
+                <Tag color="blue">{text}</Tag>
+            )
         },
         {
             title: '详情',
             dataIndex: 'details',
             key: 'details',
             ellipsis: true,
+            render: (details: string, record: LogEntry) => (
+                <Space>
+                    {details ?
+                        <div style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {details}
+                        </div>
+                        :
+                        <span style={{ color: '#999' }}>无详情</span>
+                    }
+                    <Badge dot={details ? true : false}>
+                        <Button
+                            type="text"
+                            icon={<EyeOutlined />}
+                            onClick={() => showLogDetail(record)}
+                            size="small"
+                        />
+                    </Badge>
+                </Space>
+            )
         },
         {
-            title: 'IP地址',
-            dataIndex: 'ipAddress',
-            key: 'ipAddress',
+            title: '操作',
+            key: 'operation',
+            width: 80,
+            render: (_: any, record: LogEntry) => (
+                <Tooltip title="查看详情">
+                    <Button
+                        type="link"
+                        icon={<InfoCircleOutlined />}
+                        onClick={() => showLogDetail(record)}
+                    />
+                </Tooltip>
+            ),
         }
     ];
 
@@ -240,13 +328,24 @@ export default function Settings() {
                         </div>
                     }
                     extra={
-                        <Button
-                            type="primary"
-                            icon={<DownloadOutlined />}
-                            onClick={exportLogs}
-                        >
-                            导出日志
-                        </Button>
+                        <Space>
+                            <Button
+                                type="primary"
+                                icon={<DownloadOutlined />}
+                                onClick={exportLogs}
+                            >
+                                导出日志
+                            </Button>
+                            <Button
+                                type="primary"
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={showClearLogsConfirm}
+                                loading={clearLogsLoading}
+                            >
+                                清空日志
+                            </Button>
+                        </Space>
                     }
                 >
                     {/* 筛选区域 */}
@@ -330,6 +429,13 @@ export default function Settings() {
                     />
                 </Card>
             </div>
+
+            {/* 日志详情Modal */}
+            <LogDetailModal
+                isOpen={detailModalVisible}
+                onClose={() => setDetailModalVisible(false)}
+                log={selectedLog}
+            />
         </div>
     );
 } 

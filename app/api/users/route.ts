@@ -39,8 +39,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 检查是否是管理员
-    if (currentUser.role !== 'ADMIN') {
+    // 获取查询参数
+    const url = new URL(request.url);
+    const roleParam = url.searchParams.get('role');
+
+    // 查询条件
+    const where: any = {};
+
+    // 如果指定了角色参数，则按角色过滤
+    if (roleParam) {
+      where.role = roleParam;
+    }
+    // 如果不是管理员，则只允许查询教师
+    else if (currentUser.role !== 'ADMIN') {
+      where.role = 'TEACHER';
+    }
+
+    // 如果是普通教师查询，允许查询教师列表（用于分配教师时选择）
+    if (currentUser.role === 'TEACHER' && (!roleParam || roleParam === 'TEACHER')) {
+      // 允许教师查询其他教师
+    }
+    // 其他情况需要管理员权限
+    else if (currentUser.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Forbidden - Admin access required' },
         { status: 403 }
@@ -51,6 +71,7 @@ export async function GET(request: NextRequest) {
     console.log('开始查询用户数据');
     try {
       const users = await prisma.user.findMany({
+        where,
         select: {
           id: true,
           name: true,
@@ -60,7 +81,7 @@ export async function GET(request: NextRequest) {
           updatedAt: true
         },
         orderBy: {
-          createdAt: 'desc'
+          name: 'asc'
         }
       });
 

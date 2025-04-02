@@ -6,11 +6,11 @@ import prisma from '../../../../lib/prisma';
 function getCurrentUser(request: NextRequest) {
   const cookieStore = cookies();
   const userSession = cookieStore.get('user_session')?.value;
-  
+
   if (!userSession) {
     return null;
   }
-  
+
   try {
     return JSON.parse(userSession);
   } catch (error) {
@@ -23,10 +23,10 @@ function getCurrentUser(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     console.log('GET /api/courses/teacher 被调用');
-    
+
     // 获取当前用户
     const currentUser = getCurrentUser(request);
-    
+
     // 检查是否登录
     if (!currentUser) {
       return NextResponse.json(
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         { status: 401 }
       );
     }
-    
+
     // 检查是否是教师
     if (currentUser.role !== 'TEACHER') {
       return NextResponse.json(
@@ -43,41 +43,66 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 通过Grade表查询教师任教的课程
     try {
-      // 获取该教师教授的所有课程ID（去重）
-      const teacherGrades = await prisma.grade.findMany({
-        where: { teacherId: currentUser.id },
-        select: { courseId: true },
-        distinct: ['courseId']
-      });
-
-      const courseIds = teacherGrades.map(grade => grade.courseId);
-      
-      // 如果没有教授任何课程
-      if (courseIds.length === 0) {
-        return NextResponse.json({ courses: [] }, { status: 200 });
-      }
-      
-      // 获取课程详情
-      const courses = await prisma.course.findMany({
-        where: {
-          id: { in: courseIds }
-        },
-        orderBy: {
-          code: 'asc'
+      // 查询教师关联的课程
+      const teacherWithCourses = await prisma.user.findUnique({
+        where: { id: currentUser.id },
+        include: {
+          teachingCourses: {
+            orderBy: {
+              code: 'asc'
+            }
+          }
         }
       });
-      
-      console.log(`查询到 ${courses.length} 门教师课程`);
-      
-      return NextResponse.json({ courses }, { status: 200 });
+
+      // 如果没有找到教师或没有关联课程
+      if (!teacherWithCourses || !teacherWithCourses.teachingCourses) {
+        return NextResponse.json({ courses: [] }, { status: 200 });
+      }
+
+      console.log(`查询到 ${teacherWithCourses.teachingCourses.length} 门教师课程`);
+
+      return NextResponse.json({ courses: teacherWithCourses.teachingCourses }, { status: 200 });
     } catch (dbError) {
       console.error('数据库查询错误:', dbError);
-      return NextResponse.json(
-        { error: '数据库查询错误' },
-        { status: 500 }
-      );
+
+      // 作为后备方案，尝试通过Grade表查询教师教授的课程
+      try {
+        // 获取该教师教授的所有课程ID（去重）
+        const teacherGrades = await prisma.grade.findMany({
+          where: { teacherId: currentUser.id },
+          select: { courseId: true },
+          distinct: ['courseId']
+        });
+
+        const courseIds = teacherGrades.map(grade => grade.courseId);
+
+        // 如果没有教授任何课程
+        if (courseIds.length === 0) {
+          return NextResponse.json({ courses: [] }, { status: 200 });
+        }
+
+        // 获取课程详情
+        const courses = await prisma.course.findMany({
+          where: {
+            id: { in: courseIds }
+          },
+          orderBy: {
+            code: 'asc'
+          }
+        });
+
+        console.log(`通过成绩表查询到 ${courses.length} 门教师课程`);
+
+        return NextResponse.json({ courses }, { status: 200 });
+      } catch (backupError) {
+        console.error('备用查询方法失败:', backupError);
+        return NextResponse.json(
+          { error: '数据库查询错误' },
+          { status: 500 }
+        );
+      }
     }
   } catch (error) {
     console.error('获取教师课程失败:', error);
