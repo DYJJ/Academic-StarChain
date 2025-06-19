@@ -13,6 +13,7 @@ type User = {
   email: string;
   role: 'ADMIN' | 'TEACHER' | 'STUDENT';
   password?: string;
+  avatarUrl?: string;
 };
 
 type AddUserModalProps = {
@@ -25,6 +26,7 @@ export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModa
   const [form] = Form.useForm();
   const [generatedPassword, setGeneratedPassword] = useState('');
   const [roleColor, setRoleColor] = useState('#52c41a'); // 默认学生颜色
+  const [avatarUrl, setAvatarUrl] = useState('');
 
   // 角色对应的颜色
   const roleColors = {
@@ -53,6 +55,11 @@ export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModa
     setRoleColor(roleColors[value as keyof typeof roleColors]);
   };
 
+  // 处理头像URL变更
+  const handleAvatarUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAvatarUrl(e.target.value);
+  };
+
   // 提交表单
   const handleSubmit = () => {
     form.validateFields()
@@ -71,6 +78,7 @@ export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModa
     form.resetFields();
     setGeneratedPassword('');
     setRoleColor('#52c41a');
+    setAvatarUrl('');
   };
 
   // 角色选项
@@ -87,7 +95,10 @@ export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModa
           <Avatar
             icon={<UserOutlined />}
             style={{ backgroundColor: roleColor }}
-          />
+            src={avatarUrl}
+          >
+            {!avatarUrl && form.getFieldValue('name') ? form.getFieldValue('name').charAt(0).toUpperCase() : null}
+          </Avatar>
           <Title level={5} style={{ margin: 0 }}>添加新用户</Title>
         </Space>
       }
@@ -103,6 +114,21 @@ export default function AddUserModal({ isOpen, onClose, onAddUser }: AddUserModa
         initialValues={{ role: 'STUDENT' }}
         onFinish={handleSubmit}
       >
+        <Form.Item
+          name="avatarUrl"
+          label="头像URL"
+        >
+          <Input
+            placeholder="请输入头像URL地址（可选）"
+            onChange={handleAvatarUrlChange}
+            suffix={
+              avatarUrl ? (
+                <Avatar size="small" src={avatarUrl} />
+              ) : null
+            }
+          />
+        </Form.Item>
+
         <Form.Item
           name="name"
           label="姓名"

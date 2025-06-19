@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
           code: 'asc'
         },
         include: {
-          teachers: {
+          users: {
             select: {
               id: true,
               name: true,
@@ -191,12 +191,12 @@ export async function POST(request: NextRequest) {
         description,
         credit: Number(credit),
         semester,
-        teachers: teacherIds && teacherIds.length > 0 ? {
+        users: teacherIds && teacherIds.length > 0 ? {
           connect: teacherIds.map((id: string) => ({ id }))
         } : undefined
       },
       include: {
-        teachers: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
     });
 
     // 记录成功创建课程的日志
-    const teacherNames = newCourse.teachers.map(t => t.name).join(', ');
+    const teacherNames = newCourse.users.map(t => t.name).join(', ');
     await logApiSuccess(
       request,
       '创建课程',
@@ -277,7 +277,7 @@ export async function PUT(request: NextRequest) {
     const course = await prisma.course.findUnique({
       where: { id },
       include: {
-        teachers: true
+        users: true
       }
     });
 
@@ -304,7 +304,7 @@ export async function PUT(request: NextRequest) {
     const oldTeachers = await prisma.user.findMany({
       where: {
         id: {
-          in: course.teachers.map(t => t.id)
+          in: course.users.map(t => t.id)
         }
       },
       select: {
@@ -339,7 +339,7 @@ export async function PUT(request: NextRequest) {
         description,
         credit: Number(credit),
         semester,
-        teachers: {
+        users: {
           // 重置关联并连接新的教师
           set: [],
           connect: teacherIds && teacherIds.length > 0 ?
@@ -347,7 +347,7 @@ export async function PUT(request: NextRequest) {
         }
       },
       include: {
-        teachers: {
+        users: {
           select: {
             id: true,
             name: true,

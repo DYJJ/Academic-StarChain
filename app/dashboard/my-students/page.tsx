@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Card, Row, Col, Button, Statistic, Typography, Empty, Spin,
   message, Input, Table, Tag, Tooltip, Avatar, Tabs, Select, Badge,
-  Divider, Progress, Dropdown, Menu, Modal, Form, Radio
+  Divider, Progress, Dropdown, Menu, Modal, Form, Radio, Descriptions, List
 } from 'antd';
 import {
   UserOutlined, BookOutlined, SearchOutlined, FileExcelOutlined,
@@ -15,8 +15,9 @@ import {
   SortAscendingOutlined, CloudDownloadOutlined, FileTextOutlined
 } from '@ant-design/icons';
 import Navbar from '../../components/Navbar';
-import { LogAction, logAction } from '../../utils/logger';
+import { logAction } from '../../utils/logger';
 import dayjs from 'dayjs';
+import * as XLSX from 'xlsx';
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
@@ -33,7 +34,7 @@ interface Student {
     name: string;
     code: string;
   }>;
-  avatar?: string;
+  avatarUrl?: string;
   status?: 'active' | 'inactive';
   lastActive?: string;
   progress?: number;
@@ -44,6 +45,12 @@ interface Course {
   name: string;
   code: string;
 }
+
+// 生成基于姓名的默认头像URL
+const getDefaultAvatarUrl = (name: string) => {
+  // 使用UI Avatars生成基于姓名的头像
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=200`;
+};
 
 export default function MyStudents() {
   const router = useRouter();
@@ -57,22 +64,34 @@ export default function MyStudents() {
   const [studentDetailVisible, setStudentDetailVisible] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [sortOrder, setSortOrder] = useState<'name' | 'recent'>('name');
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
 
   useEffect(() => {
-    fetchStudents();
-    fetchCourses();
-
-    // 记录访问学生管理页面
-    logAction(LogAction.STUDENT_MANAGEMENT, '访问我的学生管理页面');
+    fetchCurrentUser();
   }, []);
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchStudents();
+      fetchCourses();
+      logAction('学生管理', '访问我的学生管理页面', currentUser.id);
+    }
+  }, [currentUser?.id]);
 
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/students/teacher');
+      const response = await fetch('/api/students/teacher', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store'
+      });
 
       if (!response.ok) {
         if (response.status === 401) {
+          message.error('未授权，请先登录');
           router.push('/login');
           return;
         }
@@ -80,48 +99,56 @@ export default function MyStudents() {
       }
 
       const data = await response.json();
-      // 为了演示，如果没有学生数据，添加一些示例数据
-      const studentsData = data.students.length > 0 ? data.students : [
-        {
-          id: '1',
-          name: '张三',
-          email: 'zhangsan@example.com',
-          studentId: '2023001',
-          createdAt: new Date().toISOString(),
-          courses: [{ id: '1', name: 'Web编程基础', code: '001' }],
-          avatar: 'https://xsgames.co/randomusers/avatar.php?g=pixel&key=1',
-          status: 'active',
-          lastActive: new Date().toISOString(),
-          progress: 78
-        },
-        {
-          id: '2',
-          name: '李四',
-          email: 'lisi@example.com',
-          studentId: '2023002',
-          createdAt: new Date().toISOString(),
-          courses: [{ id: '1', name: 'Web编程基础', code: '001' }],
-          avatar: 'https://xsgames.co/randomusers/avatar.php?g=pixel&key=2',
-          status: 'active',
-          lastActive: dayjs().subtract(2, 'day').toISOString(),
-          progress: 65
-        },
-        {
-          id: '3',
-          name: '王五',
-          email: 'wangwu@example.com',
-          studentId: '2023003',
-          createdAt: new Date().toISOString(),
-          courses: [{ id: '1', name: 'Web编程基础', code: '001' }],
-          avatar: 'https://xsgames.co/randomusers/avatar.php?g=pixel&key=3',
-          status: 'inactive',
-          lastActive: dayjs().subtract(10, 'day').toISOString(),
-          progress: 32
-        }
-      ];
+      console.log('获取到的学生数据:', data.students);
 
-      setStudents(studentsData);
-      setFilteredStudents(studentsData);
+      const studentsWithProgress = await Promise.all(
+        data.students.map(async (student: any) => {
+          try {
+            const progressResponse = await fetch(`/api/students/progress?studentId=${student.id}`, {
+              method: 'GET',
+              cache: 'no-store'
+            });
+
+            if (progressResponse.ok) {
+              const progressData = await progressResponse.json();
+              console.log('学生进度数据:', progressData);
+
+              // 获取头像URL，如果没有则使用默认头像
+              const avatarUrl = student.avatarUrl ||
+                progressData.student?.avatarUrl ||
+                getDefaultAvatarUrl(student.name);
+
+              return {
+                ...student,
+                progress: progressData.totalProgress,
+                status: progressData.totalProgress > 0 ? 'active' : 'inactive',
+                lastActive: new Date().toISOString(),
+                // 确保使用正确的头像URL
+                avatarUrl,
+                // 如果没有学号，使用email作为学号
+                studentId: student.studentId || student.email.split('@')[0]
+              };
+            }
+
+            // 如果没有进度数据，也要确保有头像
+            return {
+              ...student,
+              avatarUrl: student.avatarUrl || getDefaultAvatarUrl(student.name),
+              studentId: student.studentId || student.email.split('@')[0]
+            };
+          } catch (e) {
+            console.error(`获取学生${student.id}进度失败:`, e);
+            return {
+              ...student,
+              avatarUrl: student.avatarUrl || getDefaultAvatarUrl(student.name),
+              studentId: student.studentId || student.email.split('@')[0]
+            };
+          }
+        })
+      );
+
+      setStudents(studentsWithProgress);
+      setFilteredStudents(studentsWithProgress);
     } catch (err: any) {
       message.error(err.message || '加载数据失败');
       setStudents([]);
@@ -144,6 +171,28 @@ export default function MyStudents() {
     } catch (err: any) {
       message.error(err.message || '加载课程数据失败');
       setCourses([]);
+    }
+  };
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await fetch('/api/users/current', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        throw new Error('获取当前用户失败');
+      }
+
+      const data = await response.json();
+      setCurrentUser(data.user);
+    } catch (err: any) {
+      message.error(err.message || '加载当前用户失败');
+      setCurrentUser(null);
     }
   };
 
@@ -201,12 +250,61 @@ export default function MyStudents() {
   const showStudentDetail = (student: Student) => {
     setSelectedStudent(student);
     setStudentDetailVisible(true);
-    logAction(LogAction.STUDENT_MANAGEMENT, `查看学生详情: ${student.name}(${student.studentId})`);
+
+    if (currentUser?.id) {
+      logAction('学生管理', `查看学生详情: ${student.name}(${student.studentId})`, currentUser.id);
+    }
   };
 
   const exportStudentList = () => {
-    message.success('学生名单已导出');
-    logAction(LogAction.STUDENT_MANAGEMENT, '导出学生名单');
+    try {
+      // 准备要导出的数据
+      const exportData = filteredStudents.map(student => ({
+        '姓名': student.name,
+        '学号': student.studentId,
+        '邮箱': student.email,
+        '状态': student.status === 'active' ? '活跃' : '不活跃',
+        '选修课程数': student.courses?.length || 0,
+        '注册时间': new Date(student.createdAt).toLocaleDateString('zh-CN'),
+        '学习进度': `${student.progress || 0}%`
+      }));
+
+      // 创建工作簿
+      const wb = XLSX.utils.book_new();
+      // 创建工作表
+      const ws = XLSX.utils.json_to_sheet(exportData);
+
+      // 设置列宽
+      const colWidths = [
+        { wch: 10 }, // 姓名
+        { wch: 12 }, // 学号
+        { wch: 25 }, // 邮箱
+        { wch: 8 },  // 状态
+        { wch: 10 }, // 选修课程数
+        { wch: 15 }, // 注册时间
+        { wch: 10 }  // 学习进度
+      ];
+      ws['!cols'] = colWidths;
+
+      // 添加工作表到工作簿
+      XLSX.utils.book_append_sheet(wb, ws, '学生名单');
+
+      // 生成文件名
+      const courseFilter = selectedCourse ? `-${courses.find(c => c.id === selectedCourse)?.name || '筛选课程'}` : '';
+      const filename = `学生名单${courseFilter}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+      // 将工作簿写入文件并触发下载
+      XLSX.writeFile(wb, filename);
+
+      message.success('学生名单已成功导出');
+
+      if (currentUser?.id) {
+        logAction('学生管理', '导出学生名单', currentUser.id);
+      }
+    } catch (error) {
+      console.error('导出学生名单失败:', error);
+      message.error('导出学生名单失败，请重试');
+    }
   };
 
   // 获取学生状态标签
@@ -242,8 +340,8 @@ export default function MyStudents() {
       render: (_: string, record: Student) => (
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <Avatar
-            src={record.avatar}
-            icon={!record.avatar && <UserOutlined />}
+            src={record.avatarUrl}
+            icon={!record.avatarUrl && <UserOutlined />}
             style={{ marginRight: 12 }}
           />
           <div>
@@ -360,102 +458,122 @@ export default function MyStudents() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
+    <div className="dashboard-container">
       <Navbar />
-
-      <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-        {/* 页面标题区域 */}
-        <div
-          style={{
-            padding: '30px 24px',
-            borderRadius: '8px',
-            marginBottom: '24px',
-            background: 'linear-gradient(120deg, #8e44ad, #9b59b6)',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            position: 'relative',
-            overflow: 'hidden'
-          }}
-        >
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              opacity: 0.1,
-              backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M15 35h30v10H15V35zm0-20h30v10H15V15zm0-20h30v10H15V-5z\' fill=\'%23FFF\' fill-rule=\'evenodd\'/%3E%3C/svg%3E")',
-              backgroundSize: '30px 30px'
-            }}
-          />
-          <div style={{ position: 'relative' }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-              <TeamOutlined style={{ fontSize: 28, color: 'white', marginRight: 12 }} />
-              <Title level={2} style={{ margin: 0, color: 'white' }}>我的学生管理</Title>
-            </div>
-            <Paragraph style={{ color: 'rgba(255, 255, 255, 0.8)', maxWidth: 800, marginBottom: 0 }}>
-              查看和管理您课程中的学生信息，包括学生档案、成绩记录和课程认证请求。
-            </Paragraph>
+      <div className="dashboard-content">
+        {/* 页面标题 */}
+        <div className="page-header">
+          <div className="page-title">
+            <TeamOutlined style={{ fontSize: '24px', marginRight: '12px', color: '#6A3DE8' }} />
+            <Title level={2} style={{ margin: 0 }}>我的学生管理</Title>
           </div>
+          <Paragraph style={{ marginTop: '8px', color: '#666' }}>
+            查看和管理您课程中的学生信息，跟踪学习进度。
+          </Paragraph>
         </div>
 
-        {/* 统计卡片区域 */}
+        {/* 统计卡片 */}
         <Row gutter={[24, 24]} style={{ marginBottom: '24px' }}>
           <Col xs={24} sm={12} md={8} lg={6}>
-            <Card bordered={false} className="stat-card">
+            <Card
+              bordered={false}
+              className="stat-card"
+              style={{
+                backgroundColor: '#6A3DE8',
+                color: 'white',
+                borderRadius: '12px',
+                boxShadow: '0 4px 12px rgba(106, 61, 232, 0.2)'
+              }}
+            >
               <Statistic
-                title="学生总数"
+                title={<span style={{ color: 'rgba(255, 255, 255, 0.85)' }}>总学生</span>}
                 value={students.length}
-                prefix={<TeamOutlined style={{ color: '#8e44ad' }} />}
+                valueStyle={{ color: 'white' }}
+                prefix={<TeamOutlined style={{ color: 'white' }} />}
                 suffix="名学生"
               />
               <div className="stat-footer">
-                <div className="stat-trend">
-                  最近7天新增 {Math.floor(students.length * 0.2)} 名
+                <div className="stat-trend" style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
+                  最近7天新增 {students.filter(s => {
+                    const createdDate = new Date(s.createdAt);
+                    const sevenDaysAgo = new Date();
+                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                    return createdDate > sevenDaysAgo;
+                  }).length} 名
                 </div>
               </div>
             </Card>
           </Col>
           <Col xs={24} sm={12} md={8} lg={6}>
-            <Card bordered={false} className="stat-card">
+            <Card
+              bordered={false}
+              className="stat-card"
+              style={{
+                backgroundColor: '#4caf50',
+                color: 'white',
+                borderRadius: '12px',
+                boxShadow: '0 4px 12px rgba(76, 175, 80, 0.2)'
+              }}
+            >
               <Statistic
-                title="活跃学生"
+                title={<span style={{ color: 'rgba(255, 255, 255, 0.85)' }}>活跃学生</span>}
                 value={students.filter(s => s.status === 'active').length}
-                prefix={<UserOutlined style={{ color: '#27ae60' }} />}
+                valueStyle={{ color: 'white' }}
+                prefix={<CheckCircleOutlined style={{ color: 'white' }} />}
                 suffix="名活跃"
               />
               <div className="stat-footer">
-                <div className="stat-trend">
+                <div className="stat-trend" style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
                   活跃率 {Math.round((students.filter(s => s.status === 'active').length / (students.length || 1)) * 100)}%
                 </div>
               </div>
             </Card>
           </Col>
           <Col xs={24} sm={12} md={8} lg={6}>
-            <Card bordered={false} className="stat-card">
+            <Card
+              bordered={false}
+              className="stat-card"
+              style={{
+                backgroundColor: '#f59f00',
+                color: 'white',
+                borderRadius: '12px',
+                boxShadow: '0 4px 12px rgba(245, 159, 0, 0.2)'
+              }}
+            >
               <Statistic
-                title="平均进度"
-                value={Math.round(students.reduce((sum, s) => sum + (s.progress || 0), 0) / (students.length || 1))}
-                prefix={<BarChartOutlined style={{ color: '#e67e22' }} />}
+                title={<span style={{ color: 'rgba(255, 255, 255, 0.85)' }}>平均进度</span>}
+                value={students.length > 0 ? Math.round(students.reduce((sum, s) => sum + (s.progress || 0), 0) / students.length) : 0}
+                valueStyle={{ color: 'white' }}
+                prefix={<BarChartOutlined style={{ color: 'white' }} />}
                 suffix="%"
               />
               <div className="stat-footer">
-                <div className="stat-trend">
-                  整体学习进度良好
+                <div className="stat-trend" style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
+                  整体学习进度情况
                 </div>
               </div>
             </Card>
           </Col>
           <Col xs={24} sm={12} md={8} lg={6}>
-            <Card bordered={false} className="stat-card">
+            <Card
+              bordered={false}
+              className="stat-card"
+              style={{
+                backgroundColor: '#2980b9',
+                color: 'white',
+                borderRadius: '12px',
+                boxShadow: '0 4px 12px rgba(41, 128, 185, 0.2)'
+              }}
+            >
               <Statistic
-                title="授课课程"
+                title={<span style={{ color: 'rgba(255, 255, 255, 0.85)' }}>授课课程</span>}
                 value={courses.length}
-                prefix={<BookOutlined style={{ color: '#2980b9' }} />}
+                valueStyle={{ color: 'white' }}
+                prefix={<BookOutlined style={{ color: 'white' }} />}
                 suffix="门课程"
               />
               <div className="stat-footer">
-                <div className="stat-trend">
+                <div className="stat-trend" style={{ color: 'rgba(255, 255, 255, 0.85)' }}>
                   平均每课程 {Math.round(students.length / (courses.length || 1))} 名学生
                 </div>
               </div>
@@ -464,20 +582,29 @@ export default function MyStudents() {
         </Row>
 
         {/* 工具栏和筛选区域 */}
-        <Card bordered={false} style={{ marginBottom: '24px' }}>
+        <Card
+          bordered={false}
+          style={{
+            marginBottom: '24px',
+            borderRadius: '8px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+          }}
+        >
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-              <Input.Search
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
+              <Input
                 placeholder="搜索学生姓名/学号/邮箱"
+                prefix={<SearchOutlined />}
+                onChange={(e) => handleSearch(e.target.value)}
+                style={{ width: '250px' }}
                 allowClear
-                style={{ width: 250 }}
-                onSearch={handleSearch}
               />
               <Select
-                placeholder="选择课程"
-                style={{ width: 200 }}
+                placeholder="选择课程筛选"
+                style={{ width: '200px' }}
                 onChange={handleCourseChange}
                 allowClear
+                value={selectedCourse}
               >
                 {courses.map(course => (
                   <Option key={course.id} value={course.id}>
@@ -486,23 +613,40 @@ export default function MyStudents() {
                 ))}
               </Select>
               <Dropdown
-                overlay={
-                  <Menu onClick={({ key }) => handleSort(key as 'name' | 'recent')}>
-                    <Menu.Item key="name">按姓名排序</Menu.Item>
-                    <Menu.Item key="recent">按最近活跃排序</Menu.Item>
-                  </Menu>
-                }
+                menu={{
+                  items: [
+                    {
+                      key: 'name',
+                      label: '按姓名排序',
+                      icon: <SortAscendingOutlined />,
+                      onClick: () => handleSort('name'),
+                    },
+                    {
+                      key: 'recent',
+                      label: '按最近活跃排序',
+                      icon: <SortAscendingOutlined />,
+                      onClick: () => handleSort('recent'),
+                    },
+                  ],
+                }}
+                placement="bottomLeft"
               >
-                <Button icon={<SortAscendingOutlined />}>
-                  {sortOrder === 'name' ? '按姓名排序' : '按最近活跃排序'} <BarChartOutlined />
+                <Button icon={<FilterOutlined />} style={{ marginRight: '8px' }}>
+                  {sortOrder === 'name' ? '按姓名排序' : '按最近活跃排序'} <Divider type="vertical" />
                 </Button>
               </Dropdown>
             </div>
+
             <div style={{ display: 'flex', gap: '8px' }}>
               <Tooltip title="导出学生名单">
                 <Button
                   icon={<CloudDownloadOutlined />}
                   onClick={exportStudentList}
+                  type="primary"
+                  style={{
+                    backgroundColor: '#6A3DE8',
+                    borderColor: '#6A3DE8'
+                  }}
                 >
                   导出名单
                 </Button>
@@ -535,7 +679,13 @@ export default function MyStudents() {
         {filteredStudents.length > 0 ? (
           viewMode === 'list' ? (
             // 表格视图
-            <Card bordered={false}>
+            <Card
+              bordered={false}
+              style={{
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+              }}
+            >
               <Table
                 dataSource={filteredStudents}
                 columns={columns}
@@ -544,7 +694,10 @@ export default function MyStudents() {
                   pageSize: 10,
                   showSizeChanger: true,
                   showQuickJumper: true,
+                  showTotal: (total) => `共 ${total} 条记录`,
                 }}
+                rowClassName="table-row"
+                loading={loading}
               />
             </Card>
           ) : (
@@ -555,6 +708,12 @@ export default function MyStudents() {
                   <Card
                     hoverable
                     className="student-card"
+                    style={{
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      height: '100%',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+                    }}
                     actions={[
                       <Tooltip title="查看详情" key="view">
                         <EyeOutlined onClick={() => showStudentDetail(student)} />
@@ -574,22 +733,28 @@ export default function MyStudents() {
                         offset={[-5, 5]}
                       >
                         <Avatar
-                          src={student.avatar}
-                          icon={!student.avatar && <UserOutlined />}
-                          size={64}
+                          src={student.avatarUrl}
+                          icon={!student.avatarUrl && <UserOutlined />}
+                          size={80}
+                          style={{
+                            border: '2px solid #f0f0f0',
+                            boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+                          }}
                         />
                       </Badge>
-                      <div style={{ marginTop: '8px' }}>
-                        <Title level={5} style={{ marginBottom: '4px' }}>{student.name}</Title>
-                        <Text type="secondary">{student.studentId}</Text>
+                      <div style={{ marginTop: '12px' }}>
+                        <Title level={5} style={{ marginBottom: '4px', color: '#333' }}>{student.name}</Title>
+                        <Text type="secondary" style={{ fontSize: '14px' }}>{student.studentId}</Text>
+                        <div style={{ marginTop: '8px' }}>
+                          {getStatusTag(student.status)}
+                        </div>
                       </div>
-                      {getStatusTag(student.status)}
                     </div>
                     <Divider style={{ margin: '12px 0' }} />
-                    <div>
+                    <div style={{ padding: '0 8px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <Text type="secondary">邮箱:</Text>
-                        <Text copyable={{ text: student.email }}>{student.email}</Text>
+                        <Text copyable={{ text: student.email }} style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{student.email}</Text>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <Text type="secondary">上次活跃:</Text>
@@ -609,6 +774,10 @@ export default function MyStudents() {
                             (student.progress || 0) < 30 ? 'exception' :
                               (student.progress || 0) < 70 ? 'normal' : 'success'
                           }
+                          strokeColor={{
+                            '0%': '#6A3DE8',
+                            '100%': '#4caf50',
+                          }}
                         />
                       </div>
                     </div>
@@ -619,7 +788,16 @@ export default function MyStudents() {
           )
         ) : (
           // 空状态
-          <Card bordered={false} style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+          <Card
+            bordered={false}
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              padding: '40px 0',
+              borderRadius: '8px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+            }}
+          >
             {emptyContent}
           </Card>
         )}
@@ -642,8 +820,8 @@ export default function MyStudents() {
           <div>
             <div style={{ display: 'flex', marginBottom: '24px' }}>
               <Avatar
-                src={selectedStudent.avatar}
-                icon={!selectedStudent.avatar && <UserOutlined />}
+                src={selectedStudent.avatarUrl}
+                icon={!selectedStudent.avatarUrl && <UserOutlined />}
                 size={64}
                 style={{ marginRight: '16px' }}
               />
@@ -689,7 +867,7 @@ export default function MyStudents() {
                   <List
                     itemLayout="horizontal"
                     dataSource={selectedStudent.courses}
-                    renderItem={course => (
+                    renderItem={(course: { id: string, name: string, code: string }) => (
                       <List.Item>
                         <List.Item.Meta
                           avatar={<BookOutlined style={{ fontSize: 24 }} />}
@@ -740,6 +918,26 @@ export default function MyStudents() {
       </Modal>
 
       <style jsx global>{`
+        .dashboard-container {
+          min-height: 100vh;
+          background-color: #f5f7fb;
+        }
+        
+        .dashboard-content {
+          padding: 24px;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+        
+        .page-header {
+          margin-bottom: 24px;
+        }
+        
+        .page-title {
+          display: flex;
+          align-items: center;
+        }
+        
         .stat-card {
           height: 140px;
           position: relative;
@@ -748,7 +946,7 @@ export default function MyStudents() {
         
         .stat-card:hover {
           transform: translateY(-5px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          box-shadow: 0 8px 16px rgba(0,0,0,0.2);
         }
         
         .stat-footer {
@@ -760,11 +958,6 @@ export default function MyStudents() {
           justify-content: space-between;
         }
         
-        .stat-trend {
-          font-size: 12px;
-          color: #8e44ad;
-        }
-        
         .student-card {
           height: 100%;
           transition: all 0.3s;
@@ -772,7 +965,15 @@ export default function MyStudents() {
         
         .student-card:hover {
           transform: translateY(-5px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+        }
+        
+        .table-row:hover {
+          background-color: #f0f5ff;
+        }
+        
+        .ant-progress-bg {
+          background: linear-gradient(to right, #6A3DE8, #4caf50);
         }
       `}</style>
     </div>

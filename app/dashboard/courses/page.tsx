@@ -25,6 +25,7 @@ type User = {
   name: string;
   email: string;
   role: 'ADMIN' | 'TEACHER' | 'STUDENT';
+
 };
 
 type Course = {
@@ -88,7 +89,30 @@ export default function CoursesManagement() {
 
         const coursesData = await coursesResponse.json();
         console.log('获取到的课程数据:', coursesData);
-        setCourses(coursesData.courses || []);
+
+        // 处理课程数据，将users转换为teachers
+        const processedCourses = (coursesData.courses || []).map((course: any) => {
+          // 如果course已经有teachers字段且不为空，则使用它
+          if (course.teachers && Array.isArray(course.teachers) && course.teachers.length > 0) {
+            return course;
+          }
+
+          // 如果course有users字段，将角色为TEACHER的用户提取为teachers
+          if (course.users && Array.isArray(course.users)) {
+            return {
+              ...course,
+              teachers: course.users.filter((user: any) => user.role === 'TEACHER')
+            };
+          }
+
+          // 如果都没有，返回原始课程对象并设置空teachers数组
+          return {
+            ...course,
+            teachers: []
+          };
+        });
+
+        setCourses(processedCourses);
 
         setLoading(false);
       } catch (err: any) {
@@ -142,30 +166,71 @@ export default function CoursesManagement() {
   };
 
   // 编辑课程
-  const handleEditCourse = async (updatedCourse: Course) => {
+  const handleEditCourse = async (courseFromModal: Course & { teacherIds?: string[] }) => {
     try {
       setLoading(true);
-      const response = await fetch('/api/courses', {
+
+      // 1. 准备并更新课程基本信息
+      // 从 courseFromModal 中提取纯粹的课程基本信息字段
+      const {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        teachers, // 旧的教师对象数组，不用于基本信息更新
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        teacherIds: newTeacherIdListFromForm, // 新的教师ID数组，用于教师分配
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        createdAt, // 通常不由表单更新
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        updatedAt, // 通常不由表单更新
+        ...basicCourseInfo // 剩余的应为课程基本信息字段
+      } = courseFromModal;
+
+      const courseUpdateResponse = await fetch('/api/courses', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updatedCourse)
+        headers: { 'Content-Type': 'application/json' },
+        // 只发送 basicCourseInfo，确保 id 包含在内，并且不包含 teachers 或 teacherIds
+        body: JSON.stringify(basicCourseInfo)
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '更新课程失败');
+      if (!courseUpdateResponse.ok) {
+        const errorData = await courseUpdateResponse.json();
+        throw new Error(errorData.error || '更新课程基本信息失败');
       }
 
-      const data = await response.json();
+      // 2. 更新教师分配
+      // 使用从表单传递过来的 newTeacherIdListFromForm
+      const teacherAssignResponse = await fetch(`/api/courses/${courseFromModal.id}/teachers`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teacherIds: newTeacherIdListFromForm || [] }) //确保发送空数组如果未选择
+      });
 
-      // 更新课程列表
-      setCourses(prevCourses =>
-        prevCourses.map(course =>
-          course.id === data.course.id ? data.course : course
-        )
-      );
+      if (!teacherAssignResponse.ok) {
+        const errorData = await teacherAssignResponse.json();
+        throw new Error(errorData.error || '分配教师失败');
+      }
+
+      // 3. 重新拉取课程列表并更新状态
+      const coursesResponse = await fetch('/api/courses');
+      if (!coursesResponse.ok) {
+        throw new Error('重新获取课程列表失败');
+      }
+      const coursesData = await coursesResponse.json();
+      const processedCourses = (coursesData.courses || []).map((course: any) => {
+        if (course.teachers && Array.isArray(course.teachers) && course.teachers.length > 0) {
+          return course;
+        }
+        if (course.users && Array.isArray(course.users)) {
+          return {
+            ...course,
+            teachers: course.users.filter((user: any) => user.role === 'TEACHER')
+          };
+        }
+        return {
+          ...course,
+          teachers: []
+        };
+      });
+      setCourses(processedCourses);
 
       setIsEditModalOpen(false);
       setSelectedCourse(null);
@@ -173,7 +238,7 @@ export default function CoursesManagement() {
       setLoading(false);
     } catch (error: any) {
       console.error('更新课程错误:', error);
-      message.error(`更新课程失败: ${error.message}`);
+      message.error(`${error.message || '更新课程失败'}`);
       setLoading(false);
     }
   };

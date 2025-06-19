@@ -1,0 +1,49 @@
+{
+  "transactions": [
+    {
+      "id": 1,
+      "transactionHash": "0x0281edc4b36c470e4d29b957a3",
+      "blockNumber": 8079,
+      "gradeId": "grade_482",
+      "studentId": "student_33",
+      "courseId": "course_10",
+      "teacherId": "teacher_10",
+      "blockchainGradeId": "0x4c1b268ae91e3aedcf801884275dc7a64ff26e8130e8a912d5ab4119cc86f8d3",
+      "blockTimestamp": "2025-04-09T08:27:49.916Z",
+      "status": "CONFIRMED"
+    },
+    {
+      "id": 2,
+      "transactionHash": "0xc2e27335f1625560d58a502e84",
+      "blockNumber": 2220,
+      "gradeId": "grade_743",
+      "studentId": "student_32",
+      "courseId": "course_44",
+      "teacherId": "teacher_10",
+      "blockchainGradeId": "0xfecf54050c714e4830f275bcc10aeaa8baecc4737ca9118713c526e85ed2db9c",
+      "blockTimestamp": "2025-04-09T08:27:57.384Z",
+      "status": "CONFIRMED"
+    }
+  ],
+  "gradeRecords": {
+    "0x4c1b268ae91e3aedcf801884275dc7a64ff26e8130e8a912d5ab4119cc86f8d3": {
+      "studentId": "student_33",
+      "courseId": "course_10",
+      "score": 84,
+      "semester": "2023-2024-2",
+      "timestamp": 1744187269916,
+      "teacherId": "teacher_10",
+      "metadata": "{\"status\":\"VERIFIED\",\"createdAt\":\"2025-04-09T08:27:49.911Z\"}"
+    },
+    "0xfecf54050c714e4830f275bcc10aeaa8baecc4737ca9118713c526e85ed2db9c": {
+      "studentId": "student_32",
+      "courseId": "course_44",
+      "score": 64,
+      "semester": "2023-2024-2",
+      "timestamp": 1744187277384,
+      "teacherId": "teacher_10",
+      "metadata": "{\"status\":\"VERIFIED\",\"createdAt\":\"2025-04-09T08:27:57.379Z\"}"
+    }
+  },
+  "nextId": 3
+}

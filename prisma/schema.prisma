@@ -1,6 +1,6 @@
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "windows"]
+  binaryTargets = ["native", "windows", "darwin-arm64"]
 }
 
 datasource db {
@@ -22,49 +22,69 @@ model SystemLog {
 }
 
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique(map: "email")
-  password      String
-  name          String
-  role          Role           @default(STUDENT)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  avatarUrl     String?        @db.Text
-  grades        Grade[]
-  teacherGrades Grade[]        @relation("TeacherGrades")
-  systemLogs    SystemLog[]
-  verifications Verification[]
+  id               String             @id @default(uuid())
+  email            String             @unique(map: "email")
+  password         String
+   teachergrade     Int                @default(0) // 统一为驼峰命名
+  comment          String             @default("")
+like              Int                   @default(0)
+  name             String
+  role             Role               @default(STUDENT)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  avatarUrl        String?            @db.Text
+  classId          String?
+  appeals          Appeal[]
+  enrollments      Enrollment[]
+  editHistories    GradeEditHistory[] @relation("editor")
+  grades           Grade[]
+  teacherGrades    Grade[]            @relation("TeacherGrades")
+  receivedMessages Message[]          @relation("ReceivedMessages")
+  sentMessages     Message[]          @relation("SentMessages")
+  systemLogs       SystemLog[]
+  conversations    UserConversation[]
+  classes          classes?           @relation(fields: [classId], references: [id])
+  verifications    Verification[]
+  courses          Course[]           @relation("courseteachers")
 
+  @@index([classId])
   @@map("users")
 }
 
 model Course {
-  id          String   @id @default(uuid())
-  code        String   @unique
+  id          String       @id @default(uuid())
+  code        String       @unique
   name        String
-  description String   @db.Text
+  description String       @db.Text
   credit      Float
   semester    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  imageUrl    String?      @db.Text
+  progress    Int?         @default(0)
+  enrollments Enrollment[]
   grades      Grade[]
+  users       User[]       @relation("courseteachers")
 
   @@map("courses")
 }
 
 model Grade {
-  id           String        @id @default(uuid())
-  score        Float
-  studentId    String
-  teacherId    String
-  courseId     String
-  status       Status        @default(PENDING)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  course       Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  student      User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  teacher      User          @relation("TeacherGrades", fields: [teacherId], references: [id], onDelete: Cascade)
-  verification Verification?
+  id            String                  @id @default(uuid())
+  score         Float
+  studentId     String
+  teacherId     String
+  courseId      String
+  status        Status                  @default(PENDING)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  appeals       Appeal[]
+  blockchainTxs BlockchainTransaction[]
+  editHistories GradeEditHistory[]
+  course        Course                  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student       User                    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher       User                    @relation("TeacherGrades", fields: [teacherId], references: [id], onDelete: Cascade)
+  verification  Verification?
 
   @@index([studentId])
   @@index([teacherId])
@@ -85,6 +105,136 @@ model Verification {
   @@map("verifications")
 }
 
+model classes {
+  id          String   @id
+  name        String
+  description String?  @db.Text
+  year        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  users       User[]
+}
+
+model BlockchainTransaction {
+  id              String   @id @default(uuid())
+  transactionHash String   @unique
+  blockNumber     Int
+  gradeId         String
+  studentId       String
+  courseId        String
+  teacherId       String
+  blockchainData  String   @db.Text
+  blockTimestamp  DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  grade           Grade    @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+
+  @@index([gradeId])
+  @@index([studentId])
+  @@index([courseId])
+  @@index([teacherId])
+  @@map("blockchain_transactions")
+}
+
+model GradeEditHistory {
+  id         String   @id @default(uuid())
+  gradeId    String
+  editorId   String
+  createdAt  DateTime @default(now())
+  editNumber Int
+  newValues  String   @db.Text
+  oldValues  String   @db.Text
+  reason     String   @db.Text
+  editor     User     @relation("editor", fields: [editorId], references: [id], onDelete: Cascade)
+  grade      Grade    @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+
+  @@index([gradeId])
+  @@index([editorId])
+  @@map("grade_edit_history")
+}
+
+model Enrollment {
+  id        String           @id @default(uuid())
+  userId    String
+  courseId  String
+  status    EnrollmentStatus @default(enrolled)
+  score     Float?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  course    Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("enrollments")
+}
+
+model Appeal {
+  id             String       @id @default(uuid())
+  gradeId        String
+  studentId      String
+  type           AppealType   @default(SCORE_ERROR)
+  reason         String       @db.Text
+  expectedScore  Float?
+  evidence       String?      @db.Text
+  meetingTime    DateTime?
+  status         AppealStatus @default(PENDING)
+  teacherComment String?      @db.Text
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  grade          Grade        @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  student        User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([gradeId])
+  @@index([studentId])
+  @@map("appeals")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  content        String       @db.Text
+  senderId       String
+  receiverId     String
+  conversationId String
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  receiver       User         @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([conversationId])
+  @@map("messages")
+}
+
+model Conversation {
+  id            String             @id @default(uuid())
+  title         String?
+  lastMessageAt DateTime           @default(now())
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  messages      Message[]
+  participants  UserConversation[]
+
+  @@map("conversations")
+}
+
+model UserConversation {
+  userId         String
+  conversationId String
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, conversationId])
+  @@index([userId])
+  @@index([conversationId])
+  @@map("user_conversations")
+}
+
 enum Role {
   STUDENT
   TEACHER
@@ -94,5 +244,25 @@ enum Role {
 enum Status {
   PENDING
   VERIFIED
+  REJECTED
+}
+
+enum EnrollmentStatus {
+  enrolled
+  completed
+  dropped
+}
+
+enum AppealType {
+  SCORE_ERROR
+  CALCULATION_ERROR
+  MISSING_POINTS
+  OTHER
+}
+
+enum AppealStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
   REJECTED
 }

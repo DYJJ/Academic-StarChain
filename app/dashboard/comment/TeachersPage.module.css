@@ -1,0 +1,63 @@
+.container {
+    max-width: 1200px;
+    margin: 0 auto; /* 水平居中 */
+    padding: 20px;
+    text-align: center; /* 文本居中 */
+}
+
+.title {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.table th,
+.table td {
+    padding: 10px;
+    border: 1px solid #ccc;
+}
+
+.table th {
+    background-color: #f0f0f0;
+}
+
+.button {
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.button:hover {
+    background-color: #0056b3;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.paginationButton {
+    padding: 8px 12px;
+    background-color: #f0f0f0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.paginationButton:hover {
+    background-color: #ccc;
+}
+
+.paginationButton[disabled] {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}

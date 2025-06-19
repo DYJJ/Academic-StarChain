@@ -1,0 +1,125 @@
+.container {
+    max-width: 1200px;
+    margin: 0 auto; /* 水平居中 */
+    padding: 20px;
+    text-align: center; /* 文本居中 */
+}
+
+.title {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.table th,
+.table td {
+    padding: 10px;
+    border: 1px solid #ccc;
+}
+
+.table th {
+    background-color: #f0f0f0;
+}
+
+.button {
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.button:hover {
+    background-color: #0056b3;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.paginationButton {
+    padding: 8px 12px;
+    background-color: #f0f0f0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.paginationButton:hover {
+    background-color: #ccc;
+}
+
+.paginationButton[disabled] {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+/* 新增卡片样式 */
+.teacherCard {
+    transition: all 0.3s ease;
+    transform-origin: center;
+}
+
+.teacherCard:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1) !important;
+}
+
+.teacherCard .ant-card-body {
+    padding: 16px;
+}
+
+.backLink {
+    color: #1677ff;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+}
+
+.backLink:hover {
+    color: #4096ff;
+}
+
+/* 评分样式 */
+.rateWrapper {
+    background-color: rgba(250, 173, 20, 0.1);
+    padding: 8px 12px;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.commentTag {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.commentTag:hover {
+    white-space: normal;
+    overflow: visible;
+}
+
+/* 响应式布局调整 */
+@media (max-width: 768px) {
+    .teacherCardCover {
+        padding: 10px 0 !important;
+    }
+    
+    .teacherCardAvatar {
+        width: 60px !important;
+        height: 60px !important;
+    }
+}

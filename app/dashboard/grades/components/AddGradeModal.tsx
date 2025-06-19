@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Modal, Form, Select, InputNumber, Button, message, Typography, Space, Avatar, Tag, Divider, Progress, Tooltip, Steps, Result, Card, Alert } from 'antd';
+import { Modal, Form, Select, InputNumber, Button, message, Typography, Space, Avatar, Tag, Divider, Progress, Tooltip, Steps, Result, Card, Alert, Spin, Empty } from 'antd';
 import { UserOutlined, BookOutlined, TrophyOutlined, SaveOutlined, CloseOutlined, QuestionCircleOutlined, RiseOutlined, PercentageOutlined, TeamOutlined, ReadOutlined, PlusOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { debounce } from 'lodash';
 
 const { Text, Title } = Typography;
 const { Step } = Steps;
@@ -13,6 +14,7 @@ type User = {
   name: string;
   email: string;
   role: string;
+  avatarUrl?: string;
 };
 
 type Course = {
@@ -25,7 +27,6 @@ type Course = {
 
 // 定义属性类型
 type AddGradeModalProps = {
-  students: User[];
   courses: Course[];
   onSubmit: (data: { studentId: string; courseId: string; score: number }) => void;
   onClose: () => void;
@@ -34,7 +35,6 @@ type AddGradeModalProps = {
 };
 
 export default function AddGradeModal({
-  students,
   courses,
   onSubmit,
   onClose,
@@ -47,6 +47,8 @@ export default function AddGradeModal({
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedScore, setSelectedScore] = useState<number | null>(null);
   const [formValid, setFormValid] = useState(false);
+  const [students, setStudents] = useState<User[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   // 重置状态
   useEffect(() => {
@@ -57,8 +59,39 @@ export default function AddGradeModal({
       setSelectedScore(null);
       setFormValid(false);
       form.resetFields();
+    } else {
+      // 加载学生数据
+      fetchStudents();
     }
   }, [isOpen, form]);
+
+  // 加载学生数据
+  const fetchStudents = async (search?: string) => {
+    try {
+      setSearchLoading(true);
+      const url = search
+        ? `/api/students?search=${encodeURIComponent(search)}`
+        : '/api/students';
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setStudents(data.students || []);
+    } catch (error) {
+      console.error('获取学生列表失败:', error);
+      message.error('获取学生列表失败');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // 防抖处理搜索
+  const debouncedSearch = debounce((value: string) => {
+    fetchStudents(value);
+  }, 300);
 
   // 根据分数获取成绩等级
   const getGradeLevel = (score: number) => {
@@ -73,46 +106,51 @@ export default function AddGradeModal({
   const handleStudentChange = (studentId: string) => {
     const student = students.find(s => s.id === studentId);
     setSelectedStudent(student || null);
-
-    // 判断当前步骤是否已完成
-    checkStepCompletion();
+    setFormValid(!!studentId); // 只要选择了学生就允许下一步
   };
 
   // 处理课程选择变化
   const handleCourseChange = (courseId: string) => {
     const course = courses.find(c => c.id === courseId);
     setSelectedCourse(course || null);
-
-    // 判断当前步骤是否已完成
-    checkStepCompletion();
+    setFormValid(!!courseId); // 只要选择了课程就允许下一步
   };
 
   // 处理分数变化
   const handleScoreChange = (value: number | null) => {
     setSelectedScore(value);
-
-    // 判断当前步骤是否已完成
-    checkStepCompletion();
-  };
-
-  // 检查当前步骤是否完成，更新表单有效性
-  const checkStepCompletion = () => {
-    try {
-      form.validateFields().then(() => {
-        setFormValid(true);
-      }).catch(() => {
-        setFormValid(false);
-      });
-    } catch (e) {
-      setFormValid(false);
-    }
+    setFormValid(value !== null && value >= 0 && value <= 100); // 只要输入了有效成绩就允许下一步
   };
 
   // 下一步
   const nextStep = () => {
-    form.validateFields().then(() => {
-      setCurrentStep(currentStep + 1);
-    });
+    // 根据当前步骤验证相应的字段
+    switch (currentStep) {
+      case 0: // 验证学生选择
+        if (form.getFieldValue('studentId')) {
+          setCurrentStep(currentStep + 1);
+        } else {
+          message.error('请选择学生');
+        }
+        break;
+      case 1: // 验证课程选择
+        if (form.getFieldValue('courseId')) {
+          setCurrentStep(currentStep + 1);
+        } else {
+          message.error('请选择课程');
+        }
+        break;
+      case 2: // 验证成绩
+        const score = form.getFieldValue('score');
+        if (score !== undefined && score !== null && score >= 0 && score <= 100) {
+          setCurrentStep(currentStep + 1);
+        } else {
+          message.error('请输入有效的成绩');
+        }
+        break;
+      default:
+        setCurrentStep(currentStep + 1);
+    }
   };
 
   // 上一步
@@ -121,12 +159,35 @@ export default function AddGradeModal({
   };
 
   // 提交表单
-  const handleFinish = (values: any) => {
-    onSubmit({
-      studentId: values.studentId,
-      courseId: values.courseId,
-      score: values.score
-    });
+  const handleSubmit = () => {
+    // 直接使用已选择的值，而不是从表单获取
+    // 这样可以确保即使表单字段在步骤切换中未正确保存，我们仍然可以获取用户的选择
+    if (!selectedStudent || !selectedCourse || selectedScore === null) {
+      message.error('提交的数据不完整，请检查所有字段');
+      return;
+    }
+
+    // 准备提交数据
+    const submittingData = {
+      studentId: selectedStudent.id,
+      courseId: selectedCourse.id,
+      score: Number(selectedScore)
+    };
+
+    // 再次验证数据是否完整
+    if (!submittingData.studentId || !submittingData.courseId || submittingData.score === undefined) {
+      message.error('提交的数据不完整，请检查所有字段');
+      return;
+    }
+
+    // 验证分数范围
+    if (submittingData.score < 0 || submittingData.score > 100) {
+      message.error('成绩必须在0-100之间');
+      return;
+    }
+
+    console.log('提交成绩数据:', submittingData);
+    onSubmit(submittingData);
   };
 
   // 渲染步骤内容
@@ -147,11 +208,14 @@ export default function AddGradeModal({
             <Select
               placeholder="请选择学生"
               showSearch
-              optionFilterProp="children"
+              filterOption={false}
+              onSearch={(value) => debouncedSearch(value)}
               onChange={handleStudentChange}
               size="large"
               style={{ width: '100%' }}
               optionLabelProp="label"
+              loading={searchLoading}
+              notFoundContent={searchLoading ? <Spin size="small" /> : <Empty description="未找到学生" />}
             >
               {students.map(student => (
                 <Select.Option
@@ -162,6 +226,7 @@ export default function AddGradeModal({
                   <Space>
                     <Avatar
                       icon={<UserOutlined />}
+                      src={student.avatarUrl}
                       style={{ backgroundColor: '#87d068' }}
                       size="small"
                     >
@@ -251,78 +316,93 @@ export default function AddGradeModal({
             </Form.Item>
 
             {selectedScore !== null && (
-              <div style={{ textAlign: 'center', marginTop: 24 }}>
-                <Progress
-                  type="dashboard"
-                  percent={Math.round(selectedScore)}
-                  status={selectedScore >= 60 ? 'success' : 'exception'}
-                  format={percent => (
-                    <span style={{ fontSize: 24, fontWeight: 'bold' }}>
-                      {percent} <PercentageOutlined style={{ fontSize: 16 }} />
-                    </span>
-                  )}
-                />
-                <div style={{ marginTop: 12 }}>
-                  <Tag color={getGradeLevel(selectedScore).color} style={{ padding: '0 16px', fontSize: 16 }}>
-                    {getGradeLevel(selectedScore).text}
-                  </Tag>
-                </div>
-              </div>
+              <Card className="mt-4">
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Progress
+                    percent={selectedScore}
+                    status={selectedScore >= 60 ? 'success' : 'exception'}
+                    strokeColor={getGradeLevel(selectedScore).color}
+                  />
+                  <div className="text-center">
+                    <Tag color={getGradeLevel(selectedScore).color} style={{ fontSize: '14px', padding: '4px 8px' }}>
+                      {getGradeLevel(selectedScore).text}
+                    </Tag>
+                  </div>
+                </Space>
+              </Card>
             )}
           </>
         );
 
-      case 3: // 确认信息
+      case 3: // 确认提交
         return (
-          <div style={{ textAlign: 'center' }}>
+          <Card>
+            <Result
+              icon={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
+              title="确认提交成绩"
+              subTitle="请核对以下信息是否正确"
+            />
+            <div className="my-4">
+              <Space direction="vertical" style={{ width: '100%' }}>
+                {selectedStudent && (
+                  <Card size="small" className="mb-2">
+                    <Space>
+                      <Avatar
+                        icon={<UserOutlined />}
+                        src={selectedStudent.avatarUrl}
+                        style={{ backgroundColor: '#1890ff' }}
+                      >
+                        {selectedStudent.name[0]}
+                      </Avatar>
+                      <div>
+                        <div><Text strong>学生: </Text>{selectedStudent.name}</div>
+                        <div><Text type="secondary">{selectedStudent.email}</Text></div>
+                      </div>
+                    </Space>
+                  </Card>
+                )}
+
+                {selectedCourse && (
+                  <Card size="small" className="mb-2">
+                    <Space>
+                      <BookOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
+                      <div>
+                        <div><Text strong>课程: </Text>{selectedCourse.name}</div>
+                        <div>
+                          <Space>
+                            <Tag color="blue">{selectedCourse.code}</Tag>
+                            <Text type="secondary">学分: {selectedCourse.credit}</Text>
+                          </Space>
+                        </div>
+                      </div>
+                    </Space>
+                  </Card>
+                )}
+
+                {selectedScore !== null && (
+                  <Card size="small">
+                    <Space>
+                      <TrophyOutlined style={{ fontSize: '24px', color: getGradeLevel(selectedScore).color }} />
+                      <div>
+                        <div><Text strong>成绩: </Text>{selectedScore}</div>
+                        <div>
+                          <Tag color={getGradeLevel(selectedScore).color}>
+                            {getGradeLevel(selectedScore).text}
+                          </Tag>
+                        </div>
+                      </div>
+                    </Space>
+                  </Card>
+                )}
+              </Space>
+            </div>
             <Alert
-              message="请确认以下成绩信息"
-              description="确认无误后点击提交按钮完成成绩录入"
+              message="提交后说明"
+              description="成绩提交后需等待管理员审核后方可生效。审核期间可以修改成绩。"
               type="info"
               showIcon
-              style={{ marginBottom: 24, textAlign: 'left' }}
             />
-
-            <Card bordered={false} style={{ background: '#f5f5f5', marginBottom: 24 }}>
-              <Space direction="vertical" style={{ width: '100%' }}>
-                <Space align="center">
-                  <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#87d068' }} size="large">
-                    {selectedStudent?.name?.[0]}
-                  </Avatar>
-                  <div>
-                    <Text strong style={{ fontSize: 16 }}>{selectedStudent?.name}</Text>
-                    <br />
-                    <Text type="secondary">{selectedStudent?.email}</Text>
-                  </div>
-                </Space>
-
-                <Divider />
-
-                <Space align="center">
-                  <Avatar icon={<BookOutlined />} style={{ backgroundColor: '#1890ff' }} size="large" />
-                  <div>
-                    <Space>
-                      <Text strong style={{ fontSize: 16 }}>{selectedCourse?.name}</Text>
-                      <Tag color="blue">{selectedCourse?.code}</Tag>
-                    </Space>
-                    <br />
-                    <Text type="secondary">学期: {selectedCourse?.semester}</Text>
-                  </div>
-                </Space>
-
-                <Divider />
-
-                <div style={{ textAlign: 'center' }}>
-                  <Title level={2} style={{ color: getGradeLevel(selectedScore || 0).color, margin: 0 }}>
-                    {selectedScore} <Text type="secondary" style={{ fontSize: 14 }}>分</Text>
-                  </Title>
-                  <Tag color={getGradeLevel(selectedScore || 0).color} style={{ padding: '0 16px', fontSize: 14, marginTop: 8 }}>
-                    {getGradeLevel(selectedScore || 0).text}
-                  </Tag>
-                </div>
-              </Space>
-            </Card>
-          </div>
+          </Card>
         );
 
       default:
@@ -330,100 +410,77 @@ export default function AddGradeModal({
     }
   };
 
+  // 渲染页脚按钮
+  const renderFooter = () => {
+    const isLastStep = currentStep === 3;
+    const isFirstStep = currentStep === 0;
+
+    return (
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div>
+          {!isFirstStep && (
+            <Button onClick={prevStep} icon={<CloseOutlined />}>
+              上一步
+            </Button>
+          )}
+        </div>
+        <div>
+          <Button onClick={onClose} style={{ marginRight: 8 }}>
+            取消
+          </Button>
+          {isLastStep ? (
+            <Button
+              type="primary"
+              onClick={handleSubmit}
+              loading={loading}
+              icon={<SaveOutlined />}
+            >
+              提交成绩
+            </Button>
+          ) : (
+            <Button
+              type="primary"
+              onClick={nextStep}
+              icon={<PlusOutlined />}
+            >
+              下一步
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Modal
       title={
         <Space>
-          <Avatar icon={<PlusOutlined />} style={{ backgroundColor: '#1890ff' }} />
-          <Title level={5} style={{ margin: 0 }}>添加成绩</Title>
+          <PlusOutlined />
+          <span>添加成绩</span>
+          <Divider type="vertical" />
+          <Text type="secondary">
+            步骤 {currentStep + 1}/4
+          </Text>
         </Space>
       }
       open={isOpen}
-      onCancel={() => {
-        // 如果已经填写了部分内容，显示确认对话框
-        if (selectedStudent || selectedCourse || selectedScore) {
-          Modal.confirm({
-            title: '确定要取消添加成绩吗？',
-            content: '已填写的信息将会丢失。',
-            okText: '确定取消',
-            cancelText: '继续填写',
-            onOk: onClose
-          });
-        } else {
-          onClose();
-        }
-      }}
-      footer={null}
+      onCancel={onClose}
       width={600}
-      destroyOnClose
+      footer={renderFooter()}
+      maskClosable={false}
     >
-      <Steps
-        current={currentStep}
-        items={[
-          {
-            title: '选择学生',
-            icon: <TeamOutlined />
-          },
-          {
-            title: '选择课程',
-            icon: <BookOutlined />
-          },
-          {
-            title: '输入成绩',
-            icon: <TrophyOutlined />
-          },
-          {
-            title: '确认提交',
-            icon: <CheckCircleOutlined />
-          }
-        ]}
-        style={{ marginBottom: 36 }}
-      />
+      <Steps current={currentStep} className="mb-8">
+        <Step title="选择学生" icon={<TeamOutlined />} />
+        <Step title="选择课程" icon={<ReadOutlined />} />
+        <Step title="输入成绩" icon={<TrophyOutlined />} />
+        <Step title="确认提交" icon={<CheckCircleOutlined />} />
+      </Steps>
 
       <Form
         form={form}
         layout="vertical"
-        onFinish={handleFinish}
-        preserve={false}
       >
         {renderStepContent()}
-
-        <Divider />
-
-        <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
-          <Space>
-            <Button onClick={onClose}>
-              取消
-            </Button>
-
-            {currentStep > 0 && (
-              <Button onClick={prevStep}>
-                上一步
-              </Button>
-            )}
-
-            {currentStep < 3 && (
-              <Button
-                type="primary"
-                onClick={nextStep}
-                disabled={!formValid}
-              >
-                下一步
-              </Button>
-            )}
-
-            {currentStep === 3 && (
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={loading}
-                icon={<SaveOutlined />}
-              >
-                提交成绩
-              </Button>
-            )}
-          </Space>
-        </Form.Item>
       </Form>
     </Modal>
   );

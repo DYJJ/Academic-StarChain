@@ -1,113 +1,89 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import prisma from '../../../../lib/prisma';
+import { LogAction, logAction, logApiError } from '../../../utils/logger';
 
-// 获取当前用户信息
+// 从cookie获取当前用户信息
 function getCurrentUser(request: NextRequest) {
   const cookieStore = cookies();
-  const userSession = cookieStore.get('user_session')?.value;
+  const userSessionStr = cookieStore.get('user_session')?.value;
 
-  if (!userSession) {
+  if (!userSessionStr) {
     return null;
   }
 
   try {
-    return JSON.parse(userSession);
+    return JSON.parse(userSessionStr);
   } catch (error) {
-    console.error('解析用户会话失败:', error);
+    console.error('解析用户会话错误:', error);
     return null;
   }
 }
 
 // 获取教师的课程列表
 export async function GET(request: NextRequest) {
+  const currentUser = getCurrentUser(request);
+  
   try {
-    console.log('GET /api/courses/teacher 被调用');
-
-    // 获取当前用户
-    const currentUser = getCurrentUser(request);
-
-    // 检查是否登录
     if (!currentUser) {
-      return NextResponse.json(
-        { error: '未授权 - 请先登录' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 检查是否是教师
-    if (currentUser.role !== 'TEACHER') {
-      return NextResponse.json(
-        { error: '禁止访问 - 仅限教师使用' },
-        { status: 403 }
-      );
-    }
+    console.log('GET /api/courses/teacher 被调用');
+    console.log('当前用户:', {
+      id: currentUser.id,
+      name: currentUser.name,
+      email: currentUser.email,
+      role: currentUser.role
+    });
 
-    try {
-      // 查询教师关联的课程
-      const teacherWithCourses = await prisma.user.findUnique({
-        where: { id: currentUser.id },
-        include: {
-          teachingCourses: {
-            orderBy: {
-              code: 'asc'
-            }
+    // 记录访问日志 - 更新为新的logAction接口
+    await logAction(LogAction.VIEW_COURSE, '查询教师课程列表', currentUser.id);
+
+    console.log('查询教师课程, 教师ID:', currentUser.id);
+
+    // 使用Prisma查询该教师教授的课程
+    const courses = await prisma.course.findMany({
+      where: {
+        users: { some: { id: currentUser.id } }
+      },
+      orderBy: {
+        name: 'asc'
+      },
+      include: {
+        users: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true
+          }
+        },
+        grades: {
+          select: {
+            id: true
           }
         }
-      });
-
-      // 如果没有找到教师或没有关联课程
-      if (!teacherWithCourses || !teacherWithCourses.teachingCourses) {
-        return NextResponse.json({ courses: [] }, { status: 200 });
       }
+    });
 
-      console.log(`查询到 ${teacherWithCourses.teachingCourses.length} 门教师课程`);
+    // 添加学生数量信息
+    const coursesWithStudentCount = courses.map(course => {
+      return {
+        ...course,
+        studentCount: course.grades.length,
+        progress: course.progress || 0, // 确保返回进度数据
+        grades: undefined // 不需要返回整个成绩列表
+      };
+    });
 
-      return NextResponse.json({ courses: teacherWithCourses.teachingCourses }, { status: 200 });
-    } catch (dbError) {
-      console.error('数据库查询错误:', dbError);
-
-      // 作为后备方案，尝试通过Grade表查询教师教授的课程
-      try {
-        // 获取该教师教授的所有课程ID（去重）
-        const teacherGrades = await prisma.grade.findMany({
-          where: { teacherId: currentUser.id },
-          select: { courseId: true },
-          distinct: ['courseId']
-        });
-
-        const courseIds = teacherGrades.map(grade => grade.courseId);
-
-        // 如果没有教授任何课程
-        if (courseIds.length === 0) {
-          return NextResponse.json({ courses: [] }, { status: 200 });
-        }
-
-        // 获取课程详情
-        const courses = await prisma.course.findMany({
-          where: {
-            id: { in: courseIds }
-          },
-          orderBy: {
-            code: 'asc'
-          }
-        });
-
-        console.log(`通过成绩表查询到 ${courses.length} 门教师课程`);
-
-        return NextResponse.json({ courses }, { status: 200 });
-      } catch (backupError) {
-        console.error('备用查询方法失败:', backupError);
-        return NextResponse.json(
-          { error: '数据库查询错误' },
-          { status: 500 }
-        );
-      }
-    }
+    return NextResponse.json({ courses: coursesWithStudentCount });
   } catch (error) {
-    console.error('获取教师课程失败:', error);
+    console.error('数据库查询错误:', error);
+    // 更新为新的logApiError接口
+    await logApiError('查询教师课程失败', error, currentUser?.id);
     return NextResponse.json(
-      { error: '服务器内部错误' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

@@ -1,40 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { PrismaClient } from '@prisma/client';
-
-// 创建Prisma客户端实例
-const prisma = new PrismaClient();
-
-// 模拟数据库中的用户
-const USERS = [
-  {
-    id: '1',
-    name: '管理员',
-    email: 'admin@example.com',
-    password: 'admin123',
-    role: 'ADMIN',
-  },
-  {
-    id: '2',
-    name: '张老师',
-    email: 'teacher@example.com',
-    password: 'teacher123',
-    role: 'TEACHER',
-  },
-  {
-    id: '3',
-    name: '李同学',
-    email: 'student@example.com',
-    password: 'student123',
-    role: 'STUDENT',
-  }
-];
+import prisma from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
     // 获取session cookie
-    const cookieStore = cookies();
-    const userSession = cookieStore.get('user_session')?.value;
+    const userSession = request.cookies.get('user_session')?.value;
 
     if (!userSession) {
       return NextResponse.json(

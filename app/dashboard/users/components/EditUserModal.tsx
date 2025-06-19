@@ -15,6 +15,7 @@ type User = {
   email: string;
   role: 'ADMIN' | 'TEACHER' | 'STUDENT';
   password?: string;
+  avatarUrl?: string;
 };
 
 type EditUserModalProps = {
@@ -30,6 +31,7 @@ export default function EditUserModal({ user, isOpen, onClose, onEditUser }: Edi
   const [showPasswordField, setShowPasswordField] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [changeHistory, setChangeHistory] = useState<{ field: string, from: string, to: string }[]>([]);
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(user.avatarUrl);
 
   // 角色对应的颜色
   const roleColors = {
@@ -50,9 +52,11 @@ export default function EditUserModal({ user, isOpen, onClose, onEditUser }: Edi
     form.setFieldsValue({
       name: user.name,
       email: user.email,
-      role: user.role
+      role: user.role,
+      avatarUrl: user.avatarUrl
     });
     setRoleColor(roleColors[user.role]);
+    setAvatarUrl(user.avatarUrl);
   }, [user, form]);
 
   // 重置表单
@@ -61,9 +65,11 @@ export default function EditUserModal({ user, isOpen, onClose, onEditUser }: Edi
       name: user.name,
       email: user.email,
       role: user.role,
-      password: ''
+      password: '',
+      avatarUrl: user.avatarUrl
     });
     setShowPasswordField(false);
+    setAvatarUrl(user.avatarUrl);
   };
 
   // 随机生成密码
@@ -152,7 +158,8 @@ export default function EditUserModal({ user, isOpen, onClose, onEditUser }: Edi
           id: user.id,
           name: values.name,
           email: values.email,
-          role: values.role
+          role: values.role,
+          avatarUrl: values.avatarUrl
         };
 
         // 如果有填写密码则添加
@@ -171,6 +178,11 @@ export default function EditUserModal({ user, isOpen, onClose, onEditUser }: Edi
       });
   };
 
+  // 处理头像URL变更
+  const handleAvatarUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAvatarUrl(e.target.value);
+  };
+
   // 角色选项
   const roleOptions = [
     { value: 'STUDENT', label: '学生', icon: <UserOutlined />, color: '#52c41a' },
@@ -185,7 +197,10 @@ export default function EditUserModal({ user, isOpen, onClose, onEditUser }: Edi
           <Avatar
             icon={roleIcons[user.role as keyof typeof roleIcons]}
             style={{ backgroundColor: roleColor }}
-          />
+            src={avatarUrl}
+          >
+            {!avatarUrl && user.name ? user.name.charAt(0).toUpperCase() : null}
+          </Avatar>
           <div>
             <Title level={5} style={{ margin: 0 }}>编辑用户</Title>
             <Text type="secondary" style={{ fontSize: '12px' }}>ID: {user.id.substring(0, 8)}...</Text>
@@ -204,6 +219,21 @@ export default function EditUserModal({ user, isOpen, onClose, onEditUser }: Edi
         onFinish={handleSubmit}
         onFieldsChange={handleFieldChange}
       >
+        <Form.Item
+          name="avatarUrl"
+          label="头像URL"
+        >
+          <Input
+            placeholder="请输入头像URL地址"
+            onChange={handleAvatarUrlChange}
+            suffix={
+              avatarUrl ? (
+                <Avatar size="small" src={avatarUrl} />
+              ) : null
+            }
+          />
+        </Form.Item>
+
         <Form.Item
           name="name"
           label="姓名"

@@ -42,15 +42,47 @@ const LogDetailModal: React.FC<LogDetailModalProps> = ({ isOpen, onClose, log })
     const fetchLogDetail = async (logId: string) => {
         try {
             setLoading(true);
+            console.log('开始获取日志详情，日志ID:', logId);
+            
             const response = await fetch(`/api/logs/${logId}`);
+            console.log('API响应状态:', response.status);
+            
             if (!response.ok) {
+                if (response.status === 404) {
+                    message.error('日志记录不存在');
+                    throw new Error('日志记录不存在');
+                } else if (response.status === 401) {
+                    message.error('请重新登录');
+                    throw new Error('未授权 - 请先登录');
+                } else if (response.status === 403) {
+                    message.error('没有查看权限');
+                    throw new Error('无权限查看日志详情');
+                }
                 throw new Error('获取日志详情失败');
             }
-            const data = await response.json();
+            
+            // 防止JSON解析错误
+            let data;
+            try {
+                const responseText = await response.text();
+                console.log('原始响应:', responseText.substring(0, 500) + '...');
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('解析响应数据失败:', parseError);
+                throw new Error('服务器返回了无效的数据格式');
+            }
+            
+            console.log('解析后的日志详情:', data);
+            
+            if (!data || !data.log) {
+                console.error('API返回无效数据:', data);
+                throw new Error('服务器返回了无效的数据结构');
+            }
+            
             setDetailedLog(data.log);
         } catch (error) {
             console.error('获取日志详情错误:', error);
-            message.error('无法加载详细日志信息');
+            message.error(`无法加载日志信息: ${error instanceof Error ? error.message : '未知错误'}`);
             // 如果API调用失败，回退到传入的日志数据
             setDetailedLog(log);
         } finally {

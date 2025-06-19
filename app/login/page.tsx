@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Form, Input, Button, Typography, Card, Space, message, Alert, Spin, Divider } from 'antd';
-import { UserOutlined, LockOutlined, LoginOutlined, HomeOutlined, SmileOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, LoginOutlined, HomeOutlined, SmileOutlined, MessageOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 
 const { Title, Text, Paragraph } = Typography;
@@ -44,6 +44,48 @@ export default function Login() {
     }
   }, [searchParams]);
 
+  // 检查未读消息
+  const checkUnreadMessages = async () => {
+    try {
+      const response = await fetch('/api/messages/unread');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.unreadCount > 0) {
+          // 显示有未读消息的通知
+          message.info({
+            content: (
+              <div>
+                <p>您有 <b>{data.unreadCount}</b> 条未读消息</p>
+                {data.latestSender && data.latestMessage && (
+                  <p>
+                    来自 <strong>{data.latestSender.name}</strong>
+                    {data.latestSender.role === 'TEACHER' ? ' 老师' :
+                      data.latestSender.role === 'STUDENT' ? ' 同学' : ''} 的消息:
+                    "<i>{data.latestMessage.content.length > 20
+                      ? data.latestMessage.content.substring(0, 20) + '...'
+                      : data.latestMessage.content}</i>"
+                  </p>
+                )}
+                <div style={{ marginTop: 8 }}>
+                  <Button type="link" size="small" onClick={() => router.push('/messages')} style={{ padding: 0 }}>
+                    点击查看 →
+                  </Button>
+                </div>
+              </div>
+            ),
+            duration: 6,
+            icon: <MessageOutlined style={{ color: '#1890ff' }} />,
+            style: {
+              cursor: 'pointer'
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error('获取未读消息失败:', error);
+    }
+  };
+
   const handleSubmit = async (values: { email: string; password: string }) => {
     setLoading(true);
     try {
@@ -62,6 +104,11 @@ export default function Login() {
       }
 
       message.success('登录成功，正在跳转...');
+
+      // 登录成功后检查未读消息
+      await checkUnreadMessages();
+
+      // 跳转到仪表板
       router.push('/dashboard');
     } catch (err: any) {
       message.error(err.message || '登录过程中出现错误');

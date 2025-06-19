@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import { LogAction, logAction } from '../../utils/logger';
-import { Table, Button, Card, Select, DatePicker, Space, Typography, Input, message, Tooltip, Badge, Tag, Modal } from 'antd';
-import { DownloadOutlined, SearchOutlined, UndoOutlined, EyeOutlined, FileTextOutlined, InfoCircleOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { Table, Button, Card, Select, DatePicker, Space, Typography, Input, message, Tooltip, Badge, Tag, Modal, Dropdown } from 'antd';
+import { DownloadOutlined, SearchOutlined, UndoOutlined, EyeOutlined, FileTextOutlined, InfoCircleOutlined, DeleteOutlined, ExclamationCircleOutlined, SortAscendingOutlined, BarChartOutlined } from '@ant-design/icons';
 import BackButton from '../../components/BackButton';
 import dayjs from 'dayjs';
 import LogDetailModal from './components/LogDetailModal';
@@ -60,27 +60,48 @@ export default function Settings() {
     const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
     const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [clearLogsLoading, setClearLogsLoading] = useState(false);
+    const [initLogsLoading, setInitLogsLoading] = useState(false);
     const { confirm } = Modal;
+    const [user, setUser] = useState<User | null>(null);
+    const [sortOrder, setSortOrder] = useState<'name' | 'recent'>('name');
 
     // 操作类型选项
     const actionOptions = Object.values(LogAction);
 
     useEffect(() => {
-        fetchLogs();
         fetchUsers();
+        fetchCurrentUser();
+    }, []);
 
-        // 记录访问设置页面的操作
-        logAction(LogAction.SYSTEM_SETTING, '访问系统设置页面');
+    useEffect(() => {
+        if (user?.id) {
+            // 只在用户加载完成后执行一次
+            logAction(LogAction.SYSTEM_SETTING, '访问系统设置页面', user.id);
+        }
+    }, [user?.id]);
+
+    useEffect(() => {
+        // 只在分页参数和用户加载完成后获取日志
+        if (user?.id) {
+            fetchLogs();
+        }
     }, [pagination.page, pagination.limit]);
 
     const fetchLogs = async () => {
+        if (!user?.id) {
+            console.warn('未获取到用户信息，无法获取日志');
+            return;
+        }
+
         try {
             setLoading(true);
+            console.log('开始获取日志，用户ID:', user.id, '用户角色:', user.role);
             const queryParams = new URLSearchParams({
                 page: pagination.page.toString(),
                 limit: pagination.limit.toString()
             });
 
+            // 添加筛选条件
             if (filters.userId) queryParams.append('userId', filters.userId);
             if (filters.action) queryParams.append('action', filters.action);
             if (filters.dateRange && filters.dateRange[0] && filters.dateRange[1]) {
@@ -88,21 +109,83 @@ export default function Settings() {
                 queryParams.append('endDate', filters.dateRange[1].format('YYYY-MM-DD'));
             }
 
-            const response = await fetch(`/api/logs?${queryParams.toString()}`);
+            const url = `/api/logs?${queryParams.toString()}`;
+            console.log('请求URL:', url);
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                cache: 'no-store'
+            });
 
+            console.log('API响应状态:', response.status, response.statusText);
+            
+            // 用更兼容的方式获取响应头
+            const headers: Record<string, string> = {};
+            response.headers.forEach((value, key) => {
+                headers[key] = value;
+            });
+            console.log('响应头:', headers);
+            
             if (!response.ok) {
                 if (response.status === 401) {
+                    console.error('用户未登录或会话已过期');
+                    message.error('登录已过期，请重新登录');
                     router.push('/login');
                     return;
                 }
-                throw new Error('获取日志失败');
+
+                if (response.status === 403) {
+                    console.error('用户无权限访问日志');
+                    message.error('您没有权限访问系统日志');
+                    return;
+                }
+
+                let errorMessage = '获取日志失败';
+                try {
+                    const errorData = await response.json();
+                    console.error('API错误响应:', errorData);
+                    errorMessage = errorData.error || errorMessage;
+                } catch (e) {
+                    console.error('解析错误响应失败:', e);
+                }
+                throw new Error(errorMessage);
             }
 
-            const data = await response.json();
-            setLogs(data.logs);
-            setPagination(data.pagination);
+            let data;
+            try {
+                const responseText = await response.text();
+                console.log('原始响应文本:', responseText.substring(0, 1000) + (responseText.length > 1000 ? '...(截断)' : ''));
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('解析JSON响应失败:', parseError);
+                throw new Error('服务器返回了无效的JSON数据');
+            }
+            
+            console.log('日志数据:', data);
+            // 添加防御性检查
+            if (!data || typeof data !== 'object') {
+                console.error('API返回的数据格式不正确:', data);
+                message.error('获取日志失败: 服务器返回数据格式不正确');
+                setLogs([]);
+                setLoading(false);
+                return;
+            }
+            
+            setLogs(data.logs || []);
+            setPagination({
+                total: data.pagination?.total || 0,
+                page: data.pagination?.page || 1,
+                limit: data.pagination?.limit || 10,
+                totalPages: data.pagination?.totalPages || 1
+            });
         } catch (err: any) {
-            message.error(err.message || '加载数据失败');
+            console.error('加载日志数据失败:', err);
+            message.error(`加载数据失败: ${err.message || '未知错误'}`);
+            // 清空数据，避免显示错误数据
+            setLogs([]);
         } finally {
             setLoading(false);
         }
@@ -113,14 +196,54 @@ export default function Settings() {
             const response = await fetch('/api/users');
 
             if (!response.ok) {
+                if (response.status === 401) {
+                    console.error('用户未登录');
+                    return;
+                }
                 throw new Error('获取用户列表失败');
             }
 
             const data = await response.json();
-            setUsers(data.users);
+            setUsers(data.users || []);
         } catch (err: any) {
             console.error('获取用户列表失败:', err);
             message.error('获取用户列表失败');
+        }
+    };
+
+    // 获取当前登录用户信息
+    const fetchCurrentUser = async () => {
+        try {
+            const response = await fetch('/api/users/current', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                cache: 'no-store'
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    message.error('请先登录');
+                    router.push('/login');
+                    return;
+                }
+                throw new Error('获取用户信息失败');
+            }
+
+            const data = await response.json();
+            console.log('当前用户数据:', data);
+            setUser(data.user);
+
+            // 确保是管理员
+            if (data.user.role !== 'ADMIN') {
+                message.error('您没有权限访问此页面');
+                router.push('/dashboard');
+            }
+        } catch (error) {
+            console.error('获取当前用户信息失败:', error);
+            message.error('获取用户信息失败，请重新登录');
+            router.push('/login');
         }
     };
 
@@ -180,7 +303,7 @@ export default function Settings() {
         document.body.removeChild(link);
 
         // 记录导出日志操作
-        logAction(LogAction.SYSTEM_SETTING, '导出系统日志');
+        logAction(LogAction.SYSTEM_SETTING, '导出系统日志', user?.id);
         message.success('日志导出成功');
     };
 
@@ -225,6 +348,37 @@ export default function Settings() {
         }
     };
 
+    // 初始化示例日志
+    const initializeLogs = async () => {
+        try {
+            setInitLogsLoading(true);
+            const response = await fetch('/api/logs/init', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    router.push('/login');
+                    return;
+                }
+                const errorData = await response.json();
+                throw new Error(errorData.error || '初始化日志失败');
+            }
+
+            const data = await response.json();
+            message.success(`已初始化系统日志，创建了 ${data.createdCount} 条记录`);
+            // 刷新日志列表
+            fetchLogs();
+        } catch (err: any) {
+            message.error(err.message || '初始化日志失败');
+        } finally {
+            setInitLogsLoading(false);
+        }
+    };
+
     const getRoleName = (role: string) => {
         return role === 'ADMIN' ? '管理员' :
             role === 'TEACHER' ? '教师' : '学生';
@@ -234,7 +388,12 @@ export default function Settings() {
         setSelectedLog(log);
         setDetailModalVisible(true);
         // 记录查看日志详情操作
-        logAction(LogAction.SYSTEM_SETTING, `查看日志详情: ${log.id}`);
+        logAction(LogAction.SYSTEM_SETTING, `查看日志详情: ${log.id}`, user?.id);
+    };
+
+    const handleSort = (key: 'name' | 'recent') => {
+        setSortOrder(key);
+        // 实现排序逻辑
     };
 
     // 表格列配置
@@ -330,6 +489,13 @@ export default function Settings() {
                     extra={
                         <Space>
                             <Button
+                                onClick={initializeLogs}
+                                loading={initLogsLoading}
+                                icon={<FileTextOutlined />}
+                            >
+                                初始化示例日志
+                            </Button>
+                            <Button
                                 type="primary"
                                 icon={<DownloadOutlined />}
                                 onClick={exportLogs}
@@ -345,6 +511,19 @@ export default function Settings() {
                             >
                                 清空日志
                             </Button>
+                            <Dropdown
+                                menu={{
+                                    items: [
+                                        { key: 'name', label: '按姓名排序' },
+                                        { key: 'recent', label: '按最近活跃排序' }
+                                    ],
+                                    onClick: ({ key }) => handleSort(key as 'name' | 'recent')
+                                }}
+                            >
+                                <Button icon={<SortAscendingOutlined />}>
+                                    {sortOrder === 'name' ? '按姓名排序' : '按最近活跃排序'} <BarChartOutlined />
+                                </Button>
+                            </Dropdown>
                         </Space>
                     }
                 >

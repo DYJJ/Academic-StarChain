@@ -13,6 +13,10 @@ type User = {
   name: string;
   email: string;
   role: 'ADMIN' | 'TEACHER' | 'STUDENT';
+
+
+
+
 };
 
 type Course = {
@@ -53,21 +57,25 @@ export default function AddCourseModal({ isOpen, onClose, onAddCourse }: AddCour
     }
   }, [isOpen]);
 
-  const fetchTeachers = async () => {
-    try {
-      setLoadingTeachers(true);
-      const response = await fetch('/api/users?role=TEACHER');
-      if (!response.ok) {
-        throw new Error('获取教师列表失败');
-      }
-      const data = await response.json();
-      setTeachers(data.users || []);
-    } catch (error) {
-      console.error('获取教师错误:', error);
-    } finally {
-      setLoadingTeachers(false);
+const fetchTeachers = async () => {
+  try {
+    setLoadingTeachers(true);
+    const response = await fetch('/api/newuser?role=TEACHER', {
+      credentials: 'include'
+    });
+    console.log('Response status:', response.status);
+    if (!response.ok) {
+      throw new Error('获取教师列表失败');
     }
-  };
+    const data = await response.json();
+    console.log('Fetched teachers data:', data);
+    setTeachers(data);
+  } catch (error) {
+    console.error('获取教师错误:', error);
+  } finally {
+    setLoadingTeachers(false);
+  }
+};
 
   // 重置表单
   const handleReset = () => {

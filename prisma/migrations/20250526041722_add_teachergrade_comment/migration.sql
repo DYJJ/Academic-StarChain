@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `users` ADD COLUMN `comment` VARCHAR(191) NOT NULL DEFAULT '',
+    ADD COLUMN `teachergrade` INTEGER NOT NULL DEFAULT 0;

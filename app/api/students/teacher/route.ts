@@ -1,22 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import prisma from '../../../../lib/prisma';
+import prisma from '@/lib/prisma';
 
-// 获取当前用户信息
+/**
+ * 获取当前用户信息函数
+ */
 function getCurrentUser(request: NextRequest) {
-  const cookieStore = cookies();
-  const userSession = cookieStore.get('user_session')?.value;
-  
-  if (!userSession) {
-    return null;
-  }
-  
-  try {
-    return JSON.parse(userSession);
-  } catch (error) {
-    console.error('解析用户会话失败:', error);
-    return null;
-  }
+    const userSession = request.cookies.get('user_session')?.value;
+    if (!userSession) {
+        return null;
+    }
+
+    try {
+        return JSON.parse(userSession);
+    } catch (error) {
+        console.error('解析用户会话失败:', error);
+        return null;
+    }
 }
 
 // 获取教师的学生列表

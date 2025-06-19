@@ -5,6 +5,18 @@ import { PrismaClient } from '@prisma/client';
 // 创建Prisma客户端实例
 const prisma = new PrismaClient();
 
+// 检查Prisma是否包含gradeEditHistory模型
+console.log('Prisma模型列表:', Object.keys(prisma));
+
+// 检查gradeEditHistory模型的字段
+try {
+  // @ts-ignore - 仅用于调试
+  const modelFields = Object.keys(prisma.gradeEditHistory.fields || {});
+  console.log('GradeEditHistory模型字段:', modelFields);
+} catch (e) {
+  console.error('获取模型字段出错:', e);
+}
+
 // 从cookie获取当前用户信息
 function getCurrentUser(request: NextRequest) {
   const cookieStore = cookies();
@@ -47,7 +59,8 @@ export async function GET(request: NextRequest) {
             select: {
               id: true,
               name: true,
-              email: true
+              email: true,
+              avatarUrl: true
             }
           },
           teacher: {
@@ -82,7 +95,8 @@ export async function GET(request: NextRequest) {
             select: {
               id: true,
               name: true,
-              email: true
+              email: true,
+              avatarUrl: true
             }
           },
           teacher: {
@@ -117,7 +131,8 @@ export async function GET(request: NextRequest) {
             select: {
               id: true,
               name: true,
-              email: true
+              email: true,
+              avatarUrl: true
             }
           },
           teacher: {
@@ -281,144 +296,135 @@ export async function PUT(request: NextRequest) {
   try {
     // 获取当前用户
     const currentUser = getCurrentUser(request);
-
-    // 检查是否登录
     if (!currentUser) {
-      return NextResponse.json(
-        { error: '未授权 - 请先登录' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: '未授权访问' }, { status: 401 });
     }
 
-    // 只允许教师和管理员更新成绩
-    if (currentUser.role !== 'TEACHER' && currentUser.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: '禁止 - 只有教师和管理员可以更新成绩' },
-        { status: 403 }
-      );
+    // 只有老师和管理员可以修改成绩
+    if (currentUser.role !== 'ADMIN' && currentUser.role !== 'TEACHER') {
+      return NextResponse.json({ error: '权限不足，仅教师和管理员可修改成绩' }, { status: 403 });
     }
 
     // 解析请求体
-    const body = await request.json();
-    const { id, score, status } = body;
+    const { id, score, semester, metadata } = await request.json();
 
     // 验证必填字段
     if (!id) {
-      return NextResponse.json(
-        { error: '请求无效 - 缺少成绩ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '成绩ID为必填项' }, { status: 400 });
     }
 
-    // 至少需要有一个要更新的字段
-    if ((score === undefined || score === null) && !status) {
-      return NextResponse.json(
-        { error: '请求无效 - 至少需要提供一个要更新的字段' },
-        { status: 400 }
-      );
+    if (typeof score !== 'number' || score < 0 || score > 100) {
+      return NextResponse.json({ error: '成绩必须是0-100之间的数字' }, { status: 400 });
     }
 
-    // 如果提供了成绩，验证范围
-    if (score !== undefined && score !== null) {
-      if (score < 0 || score > 100) {
-        return NextResponse.json(
-          { error: '请求无效 - 成绩必须在0-100之间' },
-          { status: 400 }
-        );
-      }
-    }
-
-    // 验证状态值
-    if (status && !['PENDING', 'VERIFIED', 'REJECTED'].includes(status)) {
-      return NextResponse.json(
-        { error: '请求无效 - 状态值无效' },
-        { status: 400 }
-      );
-    }
-
-    // 查找成绩记录
+    // 查询原成绩记录
     const existingGrade = await prisma.grade.findUnique({
       where: { id },
       include: {
-        student: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        course: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
+        course: true,
+        student: true,
+        teacher: true
       }
     });
 
     if (!existingGrade) {
-      return NextResponse.json(
-        { error: '未找到 - 成绩记录不存在' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: '成绩记录不存在' }, { status: 404 });
     }
 
-    // 权限检查：教师只能更新自己添加的成绩
+    // 教师只能修改自己的课程成绩
     if (currentUser.role === 'TEACHER' && existingGrade.teacherId !== currentUser.id) {
-      return NextResponse.json(
-        { error: '禁止 - 您只能更新自己添加的成绩' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: '无法修改其他教师的成绩记录' }, { status: 403 });
     }
 
-    // 更新成绩记录
-    const updateData: any = {};
-    if (score !== undefined && score !== null) {
-      updateData.score = score;
-    }
-    if (status) {
-      updateData.status = status;
+    // 记录原始值用于历史记录
+    const oldValues = {
+      score: existingGrade.score,
+      semester: existingGrade.semester,
+      metadata: existingGrade.metadata
+    };
+
+    // 检查是否真的有修改
+    const hasChanges = oldValues.score !== score ||
+      oldValues.semester !== semester ||
+      JSON.stringify(oldValues.metadata) !== JSON.stringify(metadata);
+
+    if (!hasChanges) {
+      return NextResponse.json({ message: '未检测到变更，成绩保持不变' });
     }
 
+    // 确定新的状态
+    // 如果成绩之前已验证，则修改后需要重新验证
+    let status = existingGrade.status;
+
+    if (existingGrade.status === 'VERIFIED') {
+      status = 'PENDING'; // 将状态设为待验证
+    }
+
+    // 获取当前修改次数，增加1
+    let editCount = 1;
+    try {
+      const historyCount = await prisma.gradeEditHistory.count({
+        where: { gradeId: id }
+      });
+      editCount = historyCount + 1;
+    } catch (error) {
+      console.error('获取成绩修改历史记录数量失败:', error);
+      // 继续执行，默认使用编号1
+    }
+
+    // 更新成绩
     const updatedGrade = await prisma.grade.update({
       where: { id },
-      data: updateData,
-      include: {
-        student: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        },
-        teacher: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
-        },
-        course: {
-          select: {
-            id: true,
-            code: true,
-            name: true,
-            credit: true,
-            semester: true
-          }
-        }
+      data: {
+        score,
+        semester,
+        status,
+        updatedAt: new Date(),
       }
     });
 
-    return NextResponse.json(
-      { message: '成绩更新成功', grade: updatedGrade },
-      { status: 200 }
-    );
+    // 创建修改历史记录
+    try {
+      console.log('尝试创建历史记录');
+      await prisma.gradeEditHistory.create({
+        data: {
+          gradeId: id,
+          editorId: currentUser.id,
+          editNumber: editCount,
+          oldValues: JSON.stringify(oldValues),
+          newValues: JSON.stringify({
+            score,
+            semester,
+            metadata
+          }),
+          reason: metadata?.reason || '常规更新'
+        }
+      });
+      console.log('历史记录创建成功');
+    } catch (historyError) {
+      console.error('创建历史记录失败:', historyError);
+      // 继续执行，不中断流程
+    }
+
+    // 记录操作日志
+    await prisma.systemLog.create({
+      data: {
+        userId: currentUser.id,
+        action: '修改成绩',
+        details: `修改了学生${existingGrade.student.name}(ID:${existingGrade.student.studentId})在课程${existingGrade.course.name}中的成绩，从${oldValues.score}分修改为${score}分，这是第${editCount}次修改。`,
+      }
+    });
+
+    return NextResponse.json({
+      message: '成绩修改成功',
+      grade: updatedGrade,
+      status: existingGrade.status !== status ?
+        `成绩状态已从"${existingGrade.status}"变更为"${status}"` :
+        undefined
+    });
   } catch (error) {
-    console.error('更新成绩失败:', error);
-    return NextResponse.json(
-      { error: '服务器内部错误' },
-      { status: 500 }
-    );
+    console.error('修改成绩失败:', error);
+    return NextResponse.json({ error: '修改成绩失败' }, { status: 500 });
   }
 }
 
